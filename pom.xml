@@ -33,9 +33,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:sfosdal/camel-metrics.git</connection>
-        <url>scm:git:git@github.com:sfosdal/camel-metrics.git</url>
-        <developerConnection>scm:git:git@github.com:sfosdal/camel-metrics.git</developerConnection>
+        <connection>scm:git:git@github.com:InitiumIo/camel-metrics.git</connection>
+        <url>scm:git:git@github.com:InitiumIo/camel-metrics.git</url>
+        <developerConnection>scm:git:git@github.com:InitiumIo/camel-metrics.git</developerConnection>
     </scm>
 
     <properties>
