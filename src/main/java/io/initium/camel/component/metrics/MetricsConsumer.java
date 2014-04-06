@@ -19,7 +19,7 @@ public class MetricsConsumer extends DefaultConsumer {
 
 	public MetricsConsumer(final Endpoint endpoint, final Processor processor) {
 		super(endpoint, processor);
-		LOGGER.info("MetricsConsumer(,{},{})", endpoint, processor);
+		LOGGER.debug("MetricsConsumer(,{},{})", endpoint, processor);
 	}
 
 }

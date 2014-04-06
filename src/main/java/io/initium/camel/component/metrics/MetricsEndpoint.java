@@ -116,7 +116,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public MetricsEndpoint(final String uri, final MetricsComponent component, final String name, final Map<String, Object> parameters) {
 		super(uri, component);
-		LOGGER.info(MARKER, "MetricsEndpoint({},{},{})", uri, component, name);
+		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, component, name);
 		this.name = name;
 		this.metricRegistry = new MetricRegistry();
 	}
@@ -569,7 +569,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	@Override
 	protected void doStart() throws Exception {
 		super.doStart();
-		LOGGER.info(MARKER, "doStart()");
+		LOGGER.debug(MARKER, "doStart()");
 		doFirstStartIfNeeded();
 		if (this.jmxReporter != null) {
 			this.jmxReporter.start();
