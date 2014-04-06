@@ -99,7 +99,7 @@ public class MetricsProducer extends DefaultProducer {
 					}
 				case NOOP:
 					// set lastExchange in endpoint for optional gauge
-					this.endpoint.setLastExchange(exchange);
+					this.endpoint.mark(exchange);
 					// optional counter
 					Expression counterDeltaExpression = this.endpoint.getCounterDelta();
 					if (counterDeltaExpression != null) {
@@ -126,7 +126,6 @@ public class MetricsProducer extends DefaultProducer {
 							LOGGER.warn(MARKER, "histogramValue does not evaluate to a Long");
 						}
 					}
-					this.endpoint.mark(exchange);
 					break;
 				case STOP:
 					Map<String, Context> contextMapStop = getTimerContextMap(exchange);

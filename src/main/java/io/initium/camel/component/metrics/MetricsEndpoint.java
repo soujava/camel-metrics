@@ -244,6 +244,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void mark(final Exchange exchange) {
 		long deltaInNanos = lastExchangeDelta();
+		this.lastExchange = exchange;
 		this.lastExchangeTime = System.nanoTime();
 		this.exchangeRate.mark();
 		updateAllIntervals(deltaInNanos);
