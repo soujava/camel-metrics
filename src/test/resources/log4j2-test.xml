@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration name="Log4J2_Configuration" status="WARN" strict="TRUE" monitorInterval="5">
+
+	<properties>
+		<!-- <property name="logPattern">%d{yyyy-MM-dd HH:mm:ss.SSSZ} %-5p %marker [%t] - %C{1}.%M (%F:%L) - %m%n</property> -->
+		<property name="logPattern">%d{yyyy-MM-dd HH:mm:ss.SSSZ} %-5p [%t] - %C{1}.%M (%F:%L) - %m%n</property>
+	</properties>
+
+	<appenders>
+		<appender name="primaryLoggingAppender" type="Console">
+			<layout type="PatternLayout" pattern="${logPattern}" />
+		</appender>
+	</appenders>
+
+	<loggers>
+		<root level="INFO">
+			<appender-ref ref="primaryLoggingAppender" />
+		</root>
+	</loggers>
+
+</configuration>
