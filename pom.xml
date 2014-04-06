@@ -4,7 +4,7 @@
 
     <groupId>io.initium.camel</groupId>
     <artifactId>camel-metrics</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <organization>
         <name>Initium.io</name>
@@ -36,7 +36,7 @@
         <connection>scm:git:git@github.com:InitiumIo/camel-metrics.git</connection>
         <url>scm:git:git@github.com:InitiumIo/camel-metrics.git</url>
         <developerConnection>scm:git:git@github.com:InitiumIo/camel-metrics.git</developerConnection>
-      <tag>camel-metrics-1.0.0</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
