@@ -13,14 +13,14 @@ Example Use:
 <from uri="timer://namedTimer?period=100"/>
 <to uri="metrics://yourFirstMetric?context=com.your.company"/>
 ```
-By default you will see three types of default metrics exposed via JMX, "exchangeRate", "sinceX", and "exchangeIntervalX".
+By default you will see three types of default metrics exposed via JMX, "rate", "sinceX", and "intervalX".
 
 ##Default Metrics
-"exchangeRate" in camel-metrics is a Meter in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#meters for more details on Meters.  Every exchange will cause a call to Meter.mark().
+"rate" in camel-metrics is a Meter in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#meters for more details on Meters.  Every exchange will cause a call to Meter.mark().
 
 "sinceX" in camel-metrics are Gauges in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#gauges more details for on Gauges. They come in 7 different varieties corresponding to the 7 values of java's TimeUnit enumeration: ,sinceNanoseconds, sinceMicroseconds, sinceMilliseconds, sinceSeconds, sinceMinutes, sinceHours and sinceDays.  The value of the metrics corresponds to how long it's been since an exchange has been processed this endpoint.  In the case of sinceSeconds, it's the number of seconds since an exchange has been processed by this endpoint, in the case of sinceMinutes, it's the number of seconds since an exchange has been processed by this endpoint, and so on.
 
-"exchangeIntervalX" in camel-metrics are Histograms in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#histograms for more details on Histograms. They also come in the 7 different TimeUnit varieties as the "sinceX" metrics.  The difference between "exchangeIntervalX" and "sinceX" metrics is that "sinceX" metrics provide a real-time view of the time interval between exchanges, whereas "exchangeIntervalX" metrics provide a view of the distribution of the time interval between exchanges.
+"intervalX" in camel-metrics are Histograms in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#histograms for more details on Histograms. They also come in the 7 different TimeUnit varieties as the "sinceX" metrics.  The difference between "intervalX" and "sinceX" metrics is that "sinceX" metrics provide a real-time view of the time interval between exchanges, whereas "intervalX" metrics provide a view of the distribution of the time interval between exchanges.
 
 ##Timing Metrics
 You can also create a timing metric.  This is a basic example:
