@@ -473,7 +473,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		//@formatter:on
 
 		// Exchange Rate
-		String exchangeRateMetricName = MetricRegistry.name(this.name, "exchangeRate");
+		String exchangeRateMetricName = MetricRegistry.name(this.name, "rate");
 		this.exchangeRate = this.metricRegistry.meter(exchangeRateMetricName);
 
 		// Since Metrics

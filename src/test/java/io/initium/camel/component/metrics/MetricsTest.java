@@ -56,13 +56,14 @@ public class MetricsTest extends CamelTestSupport {
 	}
 
 	@Test
+	@Ignore
 	public void theSecondTest() throws Exception {
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
 				// from("timer://namedTimer?period=100").to("metrics://sample?context=context1&enableInternalTimer=true");
 				// from("timer://namedTimer?period=100").to("metrics://sample?context=context2&durationUnit=seConds");
-				from("timer://namedTimer?period=1000").to("metrics://sample?context=context3&histogramValue=1&histogramReservoir=slidingTimewindow");
+				from("timer://namedTimer?period=1000").to("metrics://sample?context=context3&histogramValue=1");
 				// from("timer://namedTimer?period=100").to("metrics://sample?context=context4&histogramValue=1&histogramReservoir=slidingTimewindow&slidingTimeWindowDuration=10&slidingTimeWindowDurationUnit=seconds");
 			}
 		});
