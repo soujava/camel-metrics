@@ -37,9 +37,9 @@ public class MetricsTest extends CamelTestSupport {
 						exchange.getIn().setBody(stringBuilder.toString());
 					}
 				};
-				from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?context=context01");
-				from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?context=context02").delay(1000);
-				from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?context=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
+				// from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?context=context01");
+				// from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?context=context02").delay(1000);
+				// from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?context=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
 				// from("timer://namedTimer?period=100").to("metrics://sampleWithCounter1?context=context03&counterDelta=3&counterName=MyName");
 				// from("timer://namedTimer?period=100").setHeader("testCounterDelta",
 				// simple("2")).to("metrics://sampleWithCounter2?counterDelta=${in.header.testCounterDelta}");
@@ -56,20 +56,19 @@ public class MetricsTest extends CamelTestSupport {
 	}
 
 	@Test
-	@Ignore
 	public void theSecondTest() throws Exception {
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
-				from("timer://namedTimer?period=100").to("metrics://sample?context=context1&enableInternalTimer=true");
-				from("timer://namedTimer?period=100").to("metrics://sample?context=context2&durationUnit=seConds");
-				from("timer://namedTimer?period=100").to("metrics://sample?context=context3&histogramValue=1&histogramReservoir=slidingTimewindow");
-				from("timer://namedTimer?period=100").to("metrics://sample?context=context4&histogramValue=1&histogramReservoir=slidingTimewindow&slidingTimeWindowDuration=10&slidingTimeWindowDurationUnit=seconds");
+				// from("timer://namedTimer?period=100").to("metrics://sample?context=context1&enableInternalTimer=true");
+				// from("timer://namedTimer?period=100").to("metrics://sample?context=context2&durationUnit=seConds");
+				from("timer://namedTimer?period=1000").to("metrics://sample?context=context3&histogramValue=1&histogramReservoir=slidingTimewindow");
+				// from("timer://namedTimer?period=100").to("metrics://sample?context=context4&histogramValue=1&histogramReservoir=slidingTimewindow&slidingTimeWindowDuration=10&slidingTimeWindowDurationUnit=seconds");
 			}
 		});
 		this.context.start();
 		while (true) {
-			TimeUnit.MINUTES.sleep(1);
+			TimeUnit.MINUTES.sleep(10);
 		}
 
 	}

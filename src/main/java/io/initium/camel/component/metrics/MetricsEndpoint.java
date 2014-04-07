@@ -39,7 +39,6 @@ import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
 
 import io.initium.common.util.StringUtils;
@@ -64,59 +63,41 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		STOP; // stop timers
 	}
 
-	/**
-	 *
-	 */
-	private enum ReservoirType {
-		DEFAULT,
-		SLIDING_TIME_WINDOW;
-
-		public static ReservoirType find(final String name) {
-			for (ReservoirType reservoirType : ReservoirType.values()) {
-				if (reservoirType.name().replaceAll("_", "").equalsIgnoreCase(name)) {
-					return reservoirType;
-				}
-			}
-			return null;
-		}
-
-	}
-
 	// logging
-	private static final String				SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER							= LoggerFactory.getLogger(SELF);
+	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
 
 	// fields
 	private final String					name;
 	private final MetricRegistry			metricRegistry;
-	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
+	private final Map<TimeUnit, Histogram>	intervals				= new HashMap<TimeUnit, Histogram>();
 	private JmxReporter						jmxReporter;
-	private long							lastExchangeTime				= System.nanoTime();
+	private long							lastExchangeTime		= System.nanoTime();
 	private Meter							exchangeRate;
-	private Timer							internalTimer					= null;
+	private Timer							internalTimer			= null;
 	private String							timing;
-	private TimingAction					timingAction					= TimingAction.NOOP;
-	private boolean							isFirstStart					= true;
-	private Timer							timer							= null;
-	private Expression						counterDelta					= null;
+	private TimingAction					timingAction			= TimingAction.NOOP;
+	private boolean							isFirstStart			= true;
+	private Timer							timer					= null;
+	private Expression						counterDelta			= null;
 	private Counter							counter;
-	private Expression						histogramValue					= null;
+	private Expression						histogramValue			= null;
 	private Histogram						histogram;
-	private Expression						gaugeValue						= null;
+	private Expression						gaugeValue				= null;
 	private Exchange						lastExchange;
-	private String							context							= DEFALUT_JMX_REPORTER_DOMAIN;
-	private TimeUnit						durationUnit					= TimeUnit.MILLISECONDS;
-	private TimeUnit						rateUnit						= TimeUnit.SECONDS;
-	private boolean							isInternalTimerEnabled			= false;
-	private long							gaugeCacheDuration				= 10;
-	private TimeUnit						gaugeCacheDurationUnit			= TimeUnit.SECONDS;
-	private ReservoirType					histogramReservoirType			= ReservoirType.DEFAULT;
-	private long							slidingTimeWindowDuration		= 5;
-	private TimeUnit						slidingTimeWindowDurationUnit	= TimeUnit.MINUTES;
-	private String							timingName						= "timing";
-	private String							counterName						= "count";
-	private String							histogramName					= "histogram";
-	private String							gaugeName						= "gauge";
+	private String							context					= DEFALUT_JMX_REPORTER_DOMAIN;
+	private TimeUnit						durationUnit			= TimeUnit.MILLISECONDS;
+	private TimeUnit						rateUnit				= TimeUnit.SECONDS;
+	private boolean							isInternalTimerEnabled	= false;
+	private long							gaugeCacheDuration		= 10;
+	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
+	private String							timingName				= "timing";
+	private String							counterName				= "count";
+	private String							histogramName			= "histogram";
+	private String							gaugeName				= "gauge";
+	private final Reservoir					intervalReservoir		= new ExponentiallyDecayingReservoir();
+	private final Reservoir					timingReservoir			= new ExponentiallyDecayingReservoir();
+	private final Reservoir					histogramReservoir		= new ExponentiallyDecayingReservoir();
 
 	/**
 	 * @param uri
@@ -366,13 +347,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.histogramName = histogramName;
 	}
 
-	/**
-	 * @param reservoirType
-	 *            the histogramReservoirType to set
-	 */
-	public void setHistogramReservoir(final String reservoirType) {
-		this.histogramReservoirType = ReservoirType.find(reservoirType);
-	}
+	// /**
+	// * @param reservoirType
+	// * the histogramReservoirType to set
+	// */
+	// public void setHistogramReservoir(final String reservoirType) {
+	// this.histogramReservoirType = ReservoirType.find(reservoirType);
+	// }
 
 	/**
 	 * @param histogramValue
@@ -397,22 +378,22 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.rateUnit = TimeUnit.valueOf(rateUnitName.toUpperCase());
 	}
 
-	/**
-	 * @param slidingTimeWindowDuration
-	 *            the slidingTimeWindowDuration to set
-	 */
-	public void setSlidingTimeWindowDuration(final String slidingTimeWindowDuration) {
-		long duration = Long.parseLong(slidingTimeWindowDuration);
-		this.slidingTimeWindowDuration = duration;
-	}
-
-	/**
-	 * @param slidingTimeWindowDurationUnit
-	 *            the slidingTimeWindowDurationUnit to set
-	 */
-	public void setSlidingTimeWindowDurationUnit(final String slidingTimeWindowDurationUnit) {
-		this.slidingTimeWindowDurationUnit = TimeUnit.valueOf(slidingTimeWindowDurationUnit.toUpperCase());
-	}
+	// /**
+	// * @param slidingTimeWindowDuration
+	// * the slidingTimeWindowDuration to set
+	// */
+	// public void setSlidingTimeWindowDuration(final String slidingTimeWindowDuration) {
+	// long duration = Long.parseLong(slidingTimeWindowDuration);
+	// this.slidingTimeWindowDuration = duration;
+	// }
+	//
+	// /**
+	// * @param slidingTimeWindowDurationUnit
+	// * the slidingTimeWindowDurationUnit to set
+	// */
+	// public void setSlidingTimeWindowDurationUnit(final String slidingTimeWindowDurationUnit) {
+	// this.slidingTimeWindowDurationUnit = TimeUnit.valueOf(slidingTimeWindowDurationUnit.toUpperCase());
+	// }
 
 	/**
 	 * @param timing
@@ -483,9 +464,10 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 		// Interval Metrics
 		for (final TimeUnit timeUnit : TimeUnit.values()) {
-			String intervalName = MetricRegistry.name(this.name, "exchangeInterval" + getPrettyName(timeUnit));
-			Histogram histogram = this.metricRegistry.histogram(intervalName);
-			this.intervals.put(timeUnit, histogram);
+			String lclName = MetricRegistry.name(this.name, "interval" + getPrettyName(timeUnit));
+			this.histogram = new Histogram(this.intervalReservoir);
+			this.metricRegistry.register(lclName, this.histogram);
+			this.intervals.put(timeUnit, this.histogram);
 		}
 
 		// Timing Metrics
@@ -506,17 +488,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (this.histogramValue != null) {
 			String lclName = MetricRegistry.name(this.name, this.histogramName);
 			LOGGER.debug(MARKER, "enabling histogram metrics: {}", lclName);
-			Reservoir reservoir;
-			switch (this.histogramReservoirType) {
-				case SLIDING_TIME_WINDOW:
-					LOGGER.info(MARKER, "using sliding time window: {} {}", this.slidingTimeWindowDuration, this.slidingTimeWindowDurationUnit.toString().toLowerCase());
-					reservoir = new SlidingTimeWindowReservoir(this.slidingTimeWindowDuration, this.slidingTimeWindowDurationUnit);
-					break;
-				default:
-					reservoir = new ExponentiallyDecayingReservoir();
-					break;
-			}
-			this.histogram = new Histogram(reservoir);
+			this.histogram = new Histogram(this.histogramReservoir);
 			this.metricRegistry.register(lclName, this.histogram);
 		}
 
