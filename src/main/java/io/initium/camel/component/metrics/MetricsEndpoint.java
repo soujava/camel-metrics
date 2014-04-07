@@ -27,6 +27,7 @@ import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
+import org.apache.camel.util.CamelContextHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,9 +96,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private String							counterName				= "count";
 	private String							histogramName			= "histogram";
 	private String							gaugeName				= "gauge";
-	private final Reservoir					intervalReservoir		= new ExponentiallyDecayingReservoir();
-	private final Reservoir					timingReservoir			= new ExponentiallyDecayingReservoir();
-	private final Reservoir					histogramReservoir		= new ExponentiallyDecayingReservoir();
+	private Reservoir						intervalReservoir		= new ExponentiallyDecayingReservoir();
+	private Reservoir						timingReservoir			= new ExponentiallyDecayingReservoir();
+	private Reservoir						histogramReservoir		= new ExponentiallyDecayingReservoir();
 
 	/**
 	 * @param uri
@@ -356,6 +357,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// }
 
 	/**
+	 * @param histogramReservoirName
+	 *            the histogramReservoir to set
+	 */
+	public void setHistogramReservoir(final String histogramReservoirName) {
+		this.histogramReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), histogramReservoirName, Reservoir.class);
+	}
+
+	/**
 	 * @param histogramValue
 	 *            the histogramValueDelta to set
 	 */
@@ -364,18 +373,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param lastExchange
+	 * @param intervalReservoirName
+	 *            the intervalReservoir to set
 	 */
-	public void setLastExchange(final Exchange lastExchange) {
-		this.lastExchange = lastExchange;
-	}
-
-	/**
-	 * @param rateUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setRateUnit(final String rateUnitName) {
-		this.rateUnit = TimeUnit.valueOf(rateUnitName.toUpperCase());
+	public void setIntervalReservoir(final String intervalReservoirName) {
+		this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName, Reservoir.class);
 	}
 
 	// /**
@@ -396,6 +398,21 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// }
 
 	/**
+	 * @param lastExchange
+	 */
+	public void setLastExchange(final Exchange lastExchange) {
+		this.lastExchange = lastExchange;
+	}
+
+	/**
+	 * @param rateUnitName
+	 *            the rateUnitName to set
+	 */
+	public void setRateUnit(final String rateUnitName) {
+		this.rateUnit = TimeUnit.valueOf(rateUnitName.toUpperCase());
+	}
+
+	/**
 	 * @param timing
 	 *            the timing to set
 	 */
@@ -410,6 +427,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setTimingName(final String timingName) {
 		this.timingName = timingName;
+	}
+
+	/**
+	 * @param timingReservoirName
+	 *            the timingReservoir to set
+	 */
+	public void setTimingReservoir(final String timingReservoirName) {
+		this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
 	}
 
 	private Expression createFileLanguageExpression(final String expression) {
@@ -474,7 +499,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (this.timingAction == TimingAction.START) {
 			String lclName = MetricRegistry.name(this.name, this.timingName);
 			LOGGER.debug(MARKER, "enabling timing metrics: {}", lclName);
-			this.timer = this.metricRegistry.timer(lclName);
+			this.timer = new Timer(this.timingReservoir);
+			this.metricRegistry.register(lclName, this.timer);
 		}
 
 		// Counter Metrics

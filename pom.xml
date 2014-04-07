@@ -5,7 +5,7 @@
     <groupId>io.initium.camel</groupId>
     <artifactId>camel-metrics</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <name>Camel Metrics</name>
     <description>Apache Camel component based on Coda Hale Metrics</description>
     <url>http://initium.io/camel-metrics</url>
