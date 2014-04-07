@@ -62,16 +62,19 @@ Every component added to a route adds latency, we are making every effort to min
 | context | prefix to use before all the individual metrics | "io.initium.metrics" | any string |
 | timing | used in startting and stopping timers | no default | start, stop |
 | timingName |  name of the timer | "timing" | any string |
+| timingReservoir |  name of supplied reservoir to use for the timing  |  | |
 | counterDelta | how much to increment the counter by with each exchange | no default | Integer or Simple Expression |
 | counterName |  name of the counter | "count" | any string |
 | histogramValue |  the value to be used in the histogram | no default | Integer or Simple Expression |
 | histogramName |  name of the histogram | "histogram" | any string |
+| histogramReservoir |  name of supplied reservoir to use for the custom histogram  |  | |
 | gaugeValue |  value to be used in the gauge, note: it doesn't need to be a number.  It can be any object that is usable via JMX | no default | Simple Expression |
 | gaugeName |  name of the gauge | "gauge" | any string |
 | durationUnit |  time unit to use for all default "duration" metrics | milliseconds | name of any Java TimeUnit value |
 | rateUnit | time unit to use for all default "rate" metrics | seconds | name of any Java TimeUnit value |
 | gaugeCacheDuration |  duration to be used for the custom cached gauge | 10 | any Integer |
 | gaugeCacheDurationUnit |  duration unit to be used for the custom cached gauge | seconds | name of any Java TimeUnit value |
+| intervalReservoir |  name of supplied reservoir to use for the interval  |  | |
 | enableInternalTimer |  enables the internal latency timer | false | true, false |
 
 #What's Next
