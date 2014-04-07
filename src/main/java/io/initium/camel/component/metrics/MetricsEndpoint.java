@@ -23,11 +23,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
+import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
 import org.apache.camel.util.CamelContextHelper;
+import org.apache.camel.util.EndpointHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +42,12 @@ import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
 
 import io.initium.common.util.StringUtils;
 
-import static io.initium.camel.component.metrics.MetricsComponent.DEFALUT_JMX_REPORTER_DOMAIN;
+import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_CONTEXT;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
 /**
@@ -65,50 +68,56 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	// logging
-	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
+	private static final String				SELF											= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER											= LoggerFactory.getLogger(SELF);
 
 	// fields
 	private final String					name;
+	private String							context											= DEFAULT_CONTEXT;
 	private final MetricRegistry			metricRegistry;
-	private final Map<TimeUnit, Histogram>	intervals				= new HashMap<TimeUnit, Histogram>();
+	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
 	private JmxReporter						jmxReporter;
-	private long							lastExchangeTime		= System.nanoTime();
+	private long							lastExchangeTime								= System.nanoTime();
 	private Meter							exchangeRate;
-	private Timer							internalTimer			= null;
+	private Timer							internalTimer									= null;
 	private String							timing;
-	private TimingAction					timingAction			= TimingAction.NOOP;
-	private boolean							isFirstStart			= true;
-	private Timer							timer					= null;
-	private Expression						counterDelta			= null;
+	private TimingAction					timingAction									= TimingAction.NOOP;
+	private boolean							isFirstStart									= true;
+	private Timer							timer											= null;
+	private Expression						counterDelta									= null;
 	private Counter							counter;
-	private Expression						histogramValue			= null;
+	private Expression						histogramValue									= null;
 	private Histogram						histogram;
-	private Expression						gaugeValue				= null;
+	private Expression						gaugeValue										= null;
 	private Exchange						lastExchange;
-	private String							context					= DEFALUT_JMX_REPORTER_DOMAIN;
-	private TimeUnit						durationUnit			= TimeUnit.MILLISECONDS;
-	private TimeUnit						rateUnit				= TimeUnit.SECONDS;
-	private boolean							isInternalTimerEnabled	= false;
-	private long							gaugeCacheDuration		= 10;
-	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
-	private String							timingName				= "timing";
-	private String							counterName				= "count";
-	private String							histogramName			= "histogram";
-	private String							gaugeName				= "gauge";
-	private Reservoir						intervalReservoir		= new ExponentiallyDecayingReservoir();
-	private Reservoir						timingReservoir			= new ExponentiallyDecayingReservoir();
-	private Reservoir						histogramReservoir		= new ExponentiallyDecayingReservoir();
+	private TimeUnit						durationUnit									= TimeUnit.MILLISECONDS;
+	private TimeUnit						rateUnit										= TimeUnit.SECONDS;
+	private boolean							isInternalTimerEnabled							= false;
+	private long							gaugeCacheDuration								= 10;
+	private TimeUnit						gaugeCacheDurationUnit							= TimeUnit.SECONDS;
+	private String							timingName										= "timing";
+	private String							counterName										= "count";
+	private String							histogramName									= "histogram";
+	private String							gaugeName										= "gauge";
+	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
+	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
+	private final boolean					isJmxReportingEnabled							= true;
+
+	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
+	private long							timingReservoirSlidingTimeWindowDuration		= 1;
+	private TimeUnit						timingReservoirSlidingTimeWindowDurationUnit	= TimeUnit.HOURS;
 
 	/**
 	 * @param uri
 	 * @param component
 	 * @param name
 	 * @param parameters
+	 * @throws Exception
 	 */
-	public MetricsEndpoint(final String uri, final MetricsComponent component, final String name, final Map<String, Object> parameters) {
+	public MetricsEndpoint(final String uri, final MetricsComponent component, final String name, final Map<String, Object> parameters) throws Exception {
 		super(uri, component);
-		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, component, name);
+		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, component, parameters);
+		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		this.name = name;
 		this.metricRegistry = new MetricRegistry();
 	}
@@ -286,7 +295,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the durationUnitName to set
 	 */
 	public void setDurationUnit(final String durationUnitName) {
-		this.durationUnit = TimeUnit.valueOf(durationUnitName.toUpperCase());
+		// TODO generalize this code to the other time unit setters
+		try {
+			this.durationUnit = TimeUnit.valueOf(durationUnitName.toUpperCase() + "S");
+		} catch (IllegalArgumentException e) {
+			this.durationUnit = TimeUnit.valueOf(durationUnitName.toUpperCase());
+		}
 	}
 
 	/**
@@ -312,6 +326,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the gaugeCacheDuration to set
 	 */
 	public void setGaugeCacheDuration(final String gaugeCacheDuration) {
+		// todo move this to primitive
 		long duration = Long.parseLong(gaugeCacheDuration);
 		this.gaugeCacheDuration = duration;
 	}
@@ -434,7 +449,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the timingReservoir to set
 	 */
 	public void setTimingReservoir(final String timingReservoirName) {
-		this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
+		if (timingReservoirName != null && timingReservoirName.length() > 0) {
+			char firstChar = timingReservoirName.charAt(0);
+			if (firstChar == '#') {
+				this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
+			} else {
+				if ("SlidingTimeWindow".equalsIgnoreCase(timingReservoirName)) {
+					this.timingReservoir = new SlidingTimeWindowReservoir(this.timingReservoirSlidingTimeWindowDuration, this.timingReservoirSlidingTimeWindowDurationUnit);
+				}
+			}
+			if (this.timingReservoir == null) {
+				throw new NoSuchBeanException(this.name);
+			}
+		}
+	}
+
+	/**
+	 * @param timingReservoirSlidingTimeWindowDuration
+	 *            the timingReservoirSlidingTimeWindowDuration to set
+	 */
+	public void setTimingReservoirSlidingTimeWindowDuration(final String timingReservoirSlidingTimeWindowDuration) {
+		this.timingReservoirSlidingTimeWindowDuration = Long.parseLong(timingReservoirSlidingTimeWindowDuration);
+	}
+
+	/**
+	 * @param timingReservoirSlidingTimeWindowDurationUnitName
+	 *            the timingReservoirSlidingTimeWindowDurationUnit to set
+	 */
+	public void setTimingReservoirSlidingTimeWindowDurationUnit(final String timingReservoirSlidingTimeWindowDurationUnitName) {
+		this.timingReservoirSlidingTimeWindowDurationUnit = TimeUnit.valueOf(timingReservoirSlidingTimeWindowDurationUnitName.toUpperCase());
 	}
 
 	private Expression createFileLanguageExpression(final String expression) {
@@ -463,14 +506,16 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.isFirstStart = false;
 
 		// jmx reporting
-		//@formatter:off
-		this.jmxReporter = JmxReporter
-				.forRegistry(this.metricRegistry)
-				.inDomain(this.context)
-				.convertDurationsTo(this.durationUnit)
-				.convertRatesTo(this.rateUnit) 
-				.build();
-		//@formatter:on
+		if (this.isJmxReportingEnabled) {
+			// @formatter:off
+			this.jmxReporter = JmxReporter
+					.forRegistry(this.metricRegistry)
+					.inDomain(this.context)
+					.convertDurationsTo(this.durationUnit)
+					.convertRatesTo(this.rateUnit)
+					.build();
+			// @formatter:on
+		}
 
 		// Exchange Rate
 		String exchangeRateMetricName = MetricRegistry.name(this.name, "rate");

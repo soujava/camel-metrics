@@ -33,13 +33,13 @@ import org.slf4j.MarkerFactory;
 public class MetricsComponent extends UriEndpointComponent {
 
 	// logging
-	private static final String	SELF						= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger	LOGGER						= LoggerFactory.getLogger(SELF);
+	private static final String	SELF			= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger	LOGGER			= LoggerFactory.getLogger(SELF);
 
 	// constants
-	public static final Marker	MARKER						= MarkerFactory.getMarker("METRICS");
-	public static final String	DEFALUT_JMX_REPORTER_DOMAIN	= "io.initium.metrics";
-	public static final String	TIMER_CONTEXT_MAP_NAME		= DEFALUT_JMX_REPORTER_DOMAIN + ".TimingMap";
+	public static final Marker	MARKER			= MarkerFactory.getMarker("METRICS");
+	public static final String	DEFAULT_CONTEXT	= "io.initium.metrics";
+	public static final String	TIMING_MAP_NAME	= DEFAULT_CONTEXT + ".TimingMap";
 
 	/**
 	 * 

@@ -32,7 +32,7 @@ import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
-import static io.initium.camel.component.metrics.MetricsComponent.TIMER_CONTEXT_MAP_NAME;
+import static io.initium.camel.component.metrics.MetricsComponent.TIMING_MAP_NAME;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -59,12 +59,12 @@ public class MetricsProducer extends DefaultProducer {
 	 */
 	private static Map<String, Context> getTimerContextMap(final Exchange exchange) {
 		@SuppressWarnings("unchecked")
-		Map<String, Context> timerContextMap = exchange.getProperty(TIMER_CONTEXT_MAP_NAME, Map.class);
+		Map<String, Context> timerContextMap = exchange.getProperty(TIMING_MAP_NAME, Map.class);
 		if (timerContextMap != null) {
 			return timerContextMap;
 		}
 		timerContextMap = new HashMap<String, Context>();
-		exchange.setProperty(TIMER_CONTEXT_MAP_NAME, timerContextMap);
+		exchange.setProperty(TIMING_MAP_NAME, timerContextMap);
 		return timerContextMap;
 	}
 

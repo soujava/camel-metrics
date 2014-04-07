@@ -56,7 +56,7 @@ public class MetricsTest extends CamelTestSupport {
 	}
 
 	@Test
-	@Ignore
+	// @Ignore
 	public void theSecondTest() throws Exception {
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
