@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
+ * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.0
  * @since 2014-02-19
  */
