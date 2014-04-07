@@ -12,8 +12,6 @@ import org.junit.Test;
 
 public class MetricsTest extends CamelTestSupport {
 
-	// TODO more tests are needed
-
 	private static Random	random	= new Random();
 
 	@Override
@@ -41,7 +39,7 @@ public class MetricsTest extends CamelTestSupport {
 				};
 				from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?context=context01");
 				from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?context=context02").delay(1000);
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?context=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
+				from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?context=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
 				// from("timer://namedTimer?period=100").to("metrics://sampleWithCounter1?context=context03&counterDelta=3&counterName=MyName");
 				// from("timer://namedTimer?period=100").setHeader("testCounterDelta",
 				// simple("2")).to("metrics://sampleWithCounter2?counterDelta=${in.header.testCounterDelta}");

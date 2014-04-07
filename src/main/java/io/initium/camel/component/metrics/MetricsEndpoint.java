@@ -47,11 +47,6 @@ import io.initium.common.util.StringUtils;
 import static io.initium.camel.component.metrics.MetricsComponent.DEFALUT_JMX_REPORTER_DOMAIN;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
-// TODO add more customizable reservoirs
-// TODO add support for ratio gauges
-// TODO make default types of metrics configurable
-// TODO make default exposed TimeUnits configurable
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -240,6 +235,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public TimingAction getTimingAction() {
 		return this.timingAction;
+	}
+
+	/**
+	 * @return the timingName
+	 */
+	public String getTimingName() {
+		return this.timingName;
 	}
 
 	/**

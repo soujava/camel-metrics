@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
 
@@ -44,6 +45,13 @@ public class MetricsProducer extends DefaultProducer {
 	// logging
 	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
+
+	/**
+	 * @return
+	 */
+	private static String getFullTimingName(final String contextName, final String metricName, final String timingName) {
+		return MetricRegistry.name(contextName, metricName, timingName);
+	}
 
 	/**
 	 * @param exchange
@@ -82,9 +90,6 @@ public class MetricsProducer extends DefaultProducer {
 		return true;
 	}
 
-	// TODO process method is too long, refactoring is needed
-	// TODO enforce context checking for looking up values in the context map
-
 	@Override
 	public void process(final Exchange exchange) throws Exception {
 		LOGGER.debug(MARKER, "process({})", exchange);
@@ -97,63 +102,16 @@ public class MetricsProducer extends DefaultProducer {
 		}
 		try {
 			switch (this.endpoint.getTimingAction()) {
-			// TODO consider more efficient means for storing Timer contexts
 				case START:
-					this.endpoint.mark(exchange);
-					Map<String, Context> contextMapStart = getTimerContextMap(exchange);
-					if (contextMapStart != null) {
-						// stop previous context if it exists
-						Context context = contextMapStart.get(this.endpoint.getName());
-						if (context != null) {
-							context.stop();
-						}
-						// start new context
-						context = this.endpoint.getTimer().time();
-						contextMapStart.put(this.endpoint.getName(), context);
-					} else {
-						LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
-					}
+					startTimer(exchange);
 				case NOOP:
 					// set lastExchange in endpoint for optional gauge
 					this.endpoint.mark(exchange);
-					// optional counter
-					Expression counterDeltaExpression = this.endpoint.getCounterDelta();
-					if (counterDeltaExpression != null) {
-						Long delta = counterDeltaExpression.evaluate(exchange, Long.class);
-						if (delta != null) {
-							Counter counter = this.endpoint.getCounter();
-							if (counter != null) {
-								counter.inc(delta);
-							}
-						} else {
-							LOGGER.warn(MARKER, "counterDelta does not evaluate to a Long");
-						}
-					}
-					// optional histogram
-					Expression histogramValueExpression = this.endpoint.getHistogramValue();
-					if (histogramValueExpression != null) {
-						Long value = histogramValueExpression.evaluate(exchange, Long.class);
-						if (value != null) {
-							Histogram histogram = this.endpoint.getHistogram();
-							if (histogram != null) {
-								histogram.update(value);
-							}
-						} else {
-							LOGGER.warn(MARKER, "histogramValue does not evaluate to a Long");
-						}
-					}
+					addOptionalCounter(exchange);
+					addOptionalHistogram(exchange);
 					break;
 				case STOP:
-					Map<String, Context> contextMapStop = getTimerContextMap(exchange);
-					if (contextMapStop != null) {
-						// stop previous context if it exists, and remove it from the map
-						Context context = contextMapStop.remove(this.endpoint.getName());
-						if (context != null) {
-							context.stop();
-						}
-					} else {
-						LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
-					}
+					stopTimer(exchange);
 					break;
 			}
 		} finally {
@@ -162,6 +120,82 @@ public class MetricsProducer extends DefaultProducer {
 			}
 		}
 
+	}
+
+	/**
+	 * @param exchange
+	 */
+	private void addOptionalCounter(final Exchange exchange) {
+		// optional Counter
+		Expression counterDeltaExpression = this.endpoint.getCounterDelta();
+		if (counterDeltaExpression != null) {
+			Long delta = counterDeltaExpression.evaluate(exchange, Long.class);
+			if (delta != null) {
+				Counter counter = this.endpoint.getCounter();
+				if (counter != null) {
+					counter.inc(delta);
+				}
+			} else {
+				LOGGER.warn(MARKER, "counterDelta does not evaluate to a Long");
+			}
+		}
+	}
+
+	/**
+	 * @param exchange
+	 */
+	private void addOptionalHistogram(final Exchange exchange) {
+		// optional histogram
+		Expression histogramValueExpression = this.endpoint.getHistogramValue();
+		if (histogramValueExpression != null) {
+			Long value = histogramValueExpression.evaluate(exchange, Long.class);
+			if (value != null) {
+				Histogram histogram = this.endpoint.getHistogram();
+				if (histogram != null) {
+					histogram.update(value);
+				}
+			} else {
+				LOGGER.warn(MARKER, "histogramValue does not evaluate to a Long");
+			}
+		}
+	}
+
+	/**
+	 * Starts the Timer context, but first Stops the previous, samely named, Timer context if it exists.
+	 * 
+	 * @param exchange
+	 */
+	private void startTimer(final Exchange exchange) {
+		Map<String, Context> map = getTimerContextMap(exchange);
+		if (map != null) {
+			// stop previous context if it exists
+			Context context = map.get(getFullTimingName(this.endpoint.getContext(), this.endpoint.getName(), this.endpoint.getTimingName()));
+			if (context != null) {
+				context.stop();
+			}
+			// start new context
+			context = this.endpoint.getTimer().time();
+			map.put(this.endpoint.getName(), context);
+		} else {
+			LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
+		}
+	}
+
+	/**
+	 * Stops the Timer context if it exists, and removes it from the map in the exchange.
+	 * 
+	 * @param exchange
+	 */
+	private void stopTimer(final Exchange exchange) {
+		Map<String, Context> map = getTimerContextMap(exchange);
+		if (map != null) {
+			Context context = map.remove(this.endpoint.getName());
+			if (context != null) {
+				context.stop();
+			}
+		} else {
+			LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
+		}
 	}
 
 	@Override
