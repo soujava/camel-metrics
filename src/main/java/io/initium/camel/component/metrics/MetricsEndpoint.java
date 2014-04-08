@@ -142,7 +142,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.metricRegistry = component.getMetricRegistry();
 		switch (this.timingAction) {
 			case STOP:
-				LOGGER.debug(MARKER, "initializeMetrics, timingAction={}", this.timingAction);
+				LOGGER.debug(MARKER, "skipping initialization, timingAction={}", this.timingAction);
 				break;
 			default:
 				initializeMetrics();

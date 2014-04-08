@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.1
- * @since 2014-02-19
+ * @since 2014-04-08
  */
 public class OptionHelper {
 
