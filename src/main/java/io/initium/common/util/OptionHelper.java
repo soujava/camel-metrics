@@ -39,9 +39,9 @@ public class OptionHelper {
 	 */
 	public static <T> T parse(final String value, final Class<T> type) {
 		if (Boolean.class.isAssignableFrom(type)) {
-			type.cast(parseBoolean(value));
+			return type.cast(parseBoolean(value));
 		} else if (TimeUnit.class.isAssignableFrom(type)) {
-			type.cast(parseTimeUnit(value));
+			return type.cast(parseTimeUnit(value));
 		}
 		return null;
 	}
