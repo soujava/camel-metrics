@@ -137,7 +137,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, component, parameters);
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		this.name = name;
-		this.metricRegistry = new MetricRegistry();
+		this.metricRegistry = component.getMetricRegistry();
 		switch (this.timingAction) {
 			case STOP:
 				LOGGER.debug(MARKER, "initializeMetrics, timingAction={}", this.timingAction);

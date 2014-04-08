@@ -24,6 +24,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import com.codahale.metrics.MetricRegistry;
+
+import io.initium.camel.component.metrics.LoggingMetricRegistryListener.Level;
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -33,13 +37,16 @@ import org.slf4j.MarkerFactory;
 public class MetricsComponent extends UriEndpointComponent {
 
 	// logging
-	private static final String	SELF			= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger	LOGGER			= LoggerFactory.getLogger(SELF);
+	private static final String		SELF			= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger		LOGGER			= LoggerFactory.getLogger(SELF);
 
 	// constants
-	public static final Marker	MARKER			= MarkerFactory.getMarker("METRICS");
-	public static final String	DEFAULT_CONTEXT	= "io.initium.metrics";
-	public static final String	TIMING_MAP_NAME	= DEFAULT_CONTEXT + ".TimingMap";
+	public static final Marker		MARKER			= MarkerFactory.getMarker("METRICS");
+	public static final String		DEFAULT_CONTEXT	= "io.initium.metrics";
+	public static final String		TIMING_MAP_NAME	= DEFAULT_CONTEXT + ".TimingMap";
+
+	// fields
+	private final MetricRegistry	metricRegistry;
 
 	/**
 	 * 
@@ -47,6 +54,15 @@ public class MetricsComponent extends UriEndpointComponent {
 	public MetricsComponent() {
 		super(MetricsEndpoint.class);
 		LOGGER.debug(MARKER, "MetricsComponent()");
+		this.metricRegistry = new MetricRegistry();
+		this.metricRegistry.addListener(new LoggingMetricRegistryListener(LOGGER, MARKER, Level.INFO));
+	}
+
+	/**
+	 * @return
+	 */
+	public MetricRegistry getMetricRegistry() {
+		return this.metricRegistry;
 	}
 
 	@Override
