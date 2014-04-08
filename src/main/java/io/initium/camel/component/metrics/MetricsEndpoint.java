@@ -78,41 +78,52 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private String							context											= DEFAULT_CONTEXT;
 	private final MetricRegistry			metricRegistry;
 	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
-	private JmxReporter						jmxReporter;
 	private long							lastExchangeTime								= System.nanoTime();
 	private Meter							exchangeRate;
 	private Timer							internalTimer									= null;
+	private Exchange						lastExchange;
+	private boolean							isInternalTimerEnabled							= false;
+	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
+
+	// for timing metrics
+	private Timer							timer											= null;
+	private String							timingName										= "timing";
 	private String							timing;
 	private TimingAction					timingAction									= TimingAction.NOOP;
-	private Timer							timer											= null;
-	private Expression						counterDelta									= null;
-	private Counter							counter;
-	private Expression						histogramValue									= null;
-	private Histogram						histogram;
-	private Expression						gaugeValue										= null;
-	private Exchange						lastExchange;
-	private TimeUnit						jmxDurationUnit									= TimeUnit.MILLISECONDS;
-	private TimeUnit						jmxRateUnit										= TimeUnit.SECONDS;
-	private boolean							isInternalTimerEnabled							= false;
-	private long							gaugeCacheDuration								= 10;
-	private TimeUnit						gaugeCacheDurationUnit							= TimeUnit.SECONDS;
-	private String							timingName										= "timing";
-	private String							counterName										= "count";
-	private String							histogramName									= "histogram";
-	private String							gaugeName										= "gauge";
-	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
-	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
-	private boolean							isJmxReportingEnabled							= true;
-
 	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
 	private long							timingReservoirSlidingTimeWindowDuration		= 1;
 	private TimeUnit						timingReservoirSlidingTimeWindowDurationUnit	= TimeUnit.HOURS;
-	private final boolean					isConsoleReportingEnabled						= false;
+
+	// for custom histogram metrics
+	private Histogram						histogram;
+	private String							histogramName									= "histogram";
+	private Expression						histogramValue									= null;
+	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
+
+	// for custom counter metrics
+	private Counter							counter;
+	private String							counterName										= "count";
+	private Expression						counterDelta									= null;
+
+	// for custom gauge metrics
+	private String							gaugeName										= "gauge";
+	private Expression						gaugeValue										= null;
+	private long							gaugeCacheDuration								= 10;
+	private TimeUnit						gaugeCacheDurationUnit							= TimeUnit.SECONDS;
+
+	// for jmx reporting
+	private boolean							isJmxReportingEnabled							= true;
+	private JmxReporter						jmxReporter;
+	private TimeUnit						jmxReporterDurationUnit							= TimeUnit.MILLISECONDS;
+	private TimeUnit						jmxReporterRateUnit								= TimeUnit.SECONDS;
+
+	// for console reporting
+	private boolean							isConsoleReportingEnabled						= false;
 	private ConsoleReporter					consoleReporter;
-	private final TimeUnit					consoleDurationUnit								= TimeUnit.MILLISECONDS;
-	private final TimeUnit					consoleRateUnit									= TimeUnit.SECONDS;
-	private final long						consoleReporterPeriod							= 1;
-	private final TimeUnit					consoleReporterPeriodUnit						= TimeUnit.MINUTES;
+	private TimeUnit						consoleReporterDurationUnit						= TimeUnit.MILLISECONDS;
+	private TimeUnit						consoleReporterRateUnit							= TimeUnit.SECONDS;
+	private long							consoleReporterPeriod							= 1;
+	private TimeUnit						consoleReporterPeriodUnit						= TimeUnit.MINUTES;
 
 	/**
 	 * @param uri
@@ -151,7 +162,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "createProducer({})");
 		final MetricsProducer producer = new MetricsProducer(this);
 		return producer;
-	};
+	}
 
 	/**
 	 * @return the context
@@ -165,7 +176,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public Counter getCounter() {
 		return this.counter;
-	}
+	};
 
 	/**
 	 * @return the counter
@@ -206,14 +217,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @return the jmxDurationUnit
 	 */
 	public TimeUnit getJmxDurationUnit() {
-		return this.jmxDurationUnit;
+		return this.jmxReporterDurationUnit;
 	}
 
 	/**
 	 * @return the jmxRateUnit
 	 */
 	public TimeUnit getJmxRateUnit() {
-		return this.jmxRateUnit;
+		return this.jmxReporterRateUnit;
 	}
 
 	/**
@@ -275,6 +286,39 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param consoleReporterDurationUnitName
+	 *            the durationUnitName to set
+	 */
+	public void setConsoleDurationUnit(final String consoleReporterDurationUnitName) {
+		this.consoleReporterDurationUnit = TimeUnitUtils.getTimeUnit(consoleReporterDurationUnitName);
+	}
+
+	/**
+	 * @param consoleReporterRateUnitName
+	 *            the rateUnitName to set
+	 */
+	public void setConsoleRateUnit(final String consoleReporterRateUnitName) {
+		this.consoleReporterRateUnit = TimeUnitUtils.getTimeUnit(consoleReporterRateUnitName);
+	}
+
+	/**
+	 * @param consoleReporterPeriod
+	 *            the gaugeCacheDuration to set
+	 */
+	public void setConsoleReporterPeriod(final String consoleReporterPeriod) {
+		long duration = Long.parseLong(consoleReporterPeriod);
+		this.consoleReporterPeriod = duration;
+	}
+
+	/**
+	 * @param consoleReporterPeriodUnitName
+	 *            the rateUnitName to set
+	 */
+	public void setConsoleReporterPeriodUnit(final String consoleReporterPeriodUnitName) {
+		this.consoleReporterPeriodUnit = TimeUnitUtils.getTimeUnit(consoleReporterPeriodUnitName);
+	}
+
+	/**
 	 * @param context
 	 *            the context to set
 	 */
@@ -304,6 +348,24 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setCounterName(final String counterName) {
 		this.counterName = counterName;
+	}
+
+	/**
+	 * @param enableConsoleReporting
+	 */
+	public void setEnableConsoleReporting(final String enableConsoleReporting) {
+		// TODO extract into OptionHelper class
+		if ("1".equals(enableConsoleReporting)) {
+			this.isConsoleReportingEnabled = true;
+		} else if ("yes".equalsIgnoreCase(enableConsoleReporting)) {
+			this.isConsoleReportingEnabled = true;
+		} else if ("ja".equalsIgnoreCase(enableConsoleReporting)) {
+			this.isConsoleReportingEnabled = true;
+		} else if ("si".equalsIgnoreCase(enableConsoleReporting)) {
+			this.isConsoleReportingEnabled = true;
+		} else {
+			this.isConsoleReportingEnabled = Boolean.parseBoolean(enableConsoleReporting);
+		}
 	}
 
 	/**
@@ -366,6 +428,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.gaugeName = gaugeName;
 	}
 
+	// /**
+	// * @param reservoirType
+	// * the histogramReservoirType to set
+	// */
+	// public void setHistogramReservoir(final String reservoirType) {
+	// this.histogramReservoirType = ReservoirType.find(reservoirType);
+	// }
+
 	/**
 	 * @param gaugeValue
 	 *            the gaugeValueDelta to set
@@ -382,36 +452,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.histogramName = histogramName;
 	}
 
-	// /**
-	// * @param reservoirType
-	// * the histogramReservoirType to set
-	// */
-	// public void setHistogramReservoir(final String reservoirType) {
-	// this.histogramReservoirType = ReservoirType.find(reservoirType);
-	// }
-
 	/**
 	 * @param histogramReservoirName
 	 *            the histogramReservoir to set
 	 */
 	public void setHistogramReservoir(final String histogramReservoirName) {
 		this.histogramReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), histogramReservoirName, Reservoir.class);
-	}
-
-	/**
-	 * @param histogramValue
-	 *            the histogramValueDelta to set
-	 */
-	public void setHistogramValue(final String histogramValue) {
-		this.histogramValue = createFileLanguageExpression(histogramValue);
-	}
-
-	/**
-	 * @param intervalReservoirName
-	 *            the intervalReservoir to set
-	 */
-	public void setIntervalReservoir(final String intervalReservoirName) {
-		this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName, Reservoir.class);
 	}
 
 	// /**
@@ -432,20 +478,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// }
 
 	/**
-	 * @param jmxDurationUnitName
-	 *            the durationUnitName to set
+	 * @param histogramValue
+	 *            the histogramValueDelta to set
 	 */
-	public void setJmxDurationUnit(final String jmxDurationUnitName) {
-		this.jmxDurationUnit = TimeUnitUtils.getTimeUnit(jmxDurationUnitName);
-		this.jmxDurationUnit = TimeUnitUtils.getTimeUnit(jmxDurationUnitName);
+	public void setHistogramValue(final String histogramValue) {
+		this.histogramValue = createFileLanguageExpression(histogramValue);
 	}
 
 	/**
-	 * @param jmxRateUnitName
+	 * @param intervalReservoirName
+	 *            the intervalReservoir to set
+	 */
+	public void setIntervalReservoir(final String intervalReservoirName) {
+		this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName, Reservoir.class);
+	}
+
+	/**
+	 * @param jmxReporterDurationUnitName
+	 *            the durationUnitName to set
+	 */
+	public void setJmxDurationUnit(final String jmxReporterDurationUnitName) {
+		this.jmxReporterDurationUnit = TimeUnitUtils.getTimeUnit(jmxReporterDurationUnitName);
+	}
+
+	/**
+	 * @param jmxReporterRateUnitName
 	 *            the rateUnitName to set
 	 */
-	public void setJmxRateUnit(final String jmxRateUnitName) {
-		this.jmxRateUnit = TimeUnitUtils.getTimeUnit(jmxRateUnitName);
+	public void setJmxRateUnit(final String jmxReporterRateUnitName) {
+		this.jmxReporterRateUnit = TimeUnitUtils.getTimeUnit(jmxReporterRateUnitName);
 	}
 
 	/**
@@ -613,8 +674,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			this.jmxReporter = JmxReporter
 					.forRegistry(this.metricRegistry)
 					.inDomain(this.context)
-					.convertDurationsTo(this.jmxDurationUnit)
-					.convertRatesTo(this.jmxRateUnit)
+					.convertDurationsTo(this.jmxReporterDurationUnit)
+					.convertRatesTo(this.jmxReporterRateUnit)
 					.build();
 			// @formatter:on
 		}
@@ -623,8 +684,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			// @formatter:off
 			this.consoleReporter = ConsoleReporter
 					.forRegistry(this.metricRegistry)
-					.convertDurationsTo(this.consoleDurationUnit)
-					.convertRatesTo(this.consoleRateUnit)
+					.convertDurationsTo(this.consoleReporterDurationUnit)
+					.convertRatesTo(this.consoleReporterRateUnit)
 					.build();
 			// @formatter:on
 			// reporter.start(1, TimeUnit.MINUTES);
