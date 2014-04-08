@@ -48,7 +48,6 @@ import com.codahale.metrics.Timer;
 
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
-import io.initium.common.util.TimeUnitUtils;
 
 import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_CONTEXT;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
@@ -291,7 +290,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the durationUnitName to set
 	 */
 	public void setConsoleDurationUnit(final String consoleReporterDurationUnitName) {
-		this.consoleReporterDurationUnit = TimeUnitUtils.getTimeUnit(consoleReporterDurationUnitName);
+		this.consoleReporterDurationUnit = OptionHelper.parse(consoleReporterDurationUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -299,7 +298,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the rateUnitName to set
 	 */
 	public void setConsoleRateUnit(final String consoleReporterRateUnitName) {
-		this.consoleReporterRateUnit = TimeUnitUtils.getTimeUnit(consoleReporterRateUnitName);
+		this.consoleReporterRateUnit = OptionHelper.parse(consoleReporterRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -316,7 +315,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the rateUnitName to set
 	 */
 	public void setConsoleReporterPeriodUnit(final String consoleReporterPeriodUnitName) {
-		this.consoleReporterPeriodUnit = TimeUnitUtils.getTimeUnit(consoleReporterPeriodUnitName);
+		this.consoleReporterPeriodUnit = OptionHelper.parse(consoleReporterPeriodUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -387,7 +386,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the gaugeCacheDurationUnit to set
 	 */
 	public void setGaugeCacheDurationUnit(final String gaugeCacheDurationUnitName) {
-		this.gaugeCacheDurationUnit = TimeUnitUtils.getTimeUnit(gaugeCacheDurationUnitName);
+		this.gaugeCacheDurationUnit = OptionHelper.parse(gaugeCacheDurationUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -468,7 +467,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the durationUnitName to set
 	 */
 	public void setJmxDurationUnit(final String jmxReporterDurationUnitName) {
-		this.jmxReporterDurationUnit = TimeUnitUtils.getTimeUnit(jmxReporterDurationUnitName);
+		this.jmxReporterDurationUnit = OptionHelper.parse(jmxReporterDurationUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -476,7 +475,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the rateUnitName to set
 	 */
 	public void setJmxRateUnit(final String jmxReporterRateUnitName) {
-		this.jmxReporterRateUnit = TimeUnitUtils.getTimeUnit(jmxReporterRateUnitName);
+		this.jmxReporterRateUnit = OptionHelper.parse(jmxReporterRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -536,7 +535,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the timingReservoirSlidingTimeWindowDurationUnit to set
 	 */
 	public void setTimingReservoirSlidingTimeWindowDurationUnit(final String timingReservoirSlidingTimeWindowDurationUnitName) {
-		this.timingReservoirSlidingTimeWindowDurationUnit = TimeUnitUtils.getTimeUnit(timingReservoirSlidingTimeWindowDurationUnitName);
+		this.timingReservoirSlidingTimeWindowDurationUnit = OptionHelper.parse(timingReservoirSlidingTimeWindowDurationUnitName, TimeUnit.class);
 	}
 
 	private Expression createFileLanguageExpression(final String expression) {

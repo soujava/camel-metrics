@@ -1,5 +1,10 @@
 package io.initium.common.util;
 
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -7,6 +12,10 @@ package io.initium.common.util;
  * @since 2014-02-19
  */
 public class OptionHelper {
+
+	// logging
+	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
 
 	/**
 	 * @param value
@@ -16,6 +25,8 @@ public class OptionHelper {
 	public static <T> T parse(final String value, final Class<T> type) {
 		if (Boolean.class.isAssignableFrom(type)) {
 			type.cast(parseBoolean(value));
+		} else if (TimeUnit.class.isAssignableFrom(type)) {
+			type.cast(parseTimeUnit(value));
 		}
 		return null;
 	}
@@ -31,6 +42,29 @@ public class OptionHelper {
 			return true;
 		}
 		return Boolean.parseBoolean(value);
+	}
+
+	/**
+	 * @param value
+	 * @return
+	 */
+	private static TimeUnit parseTimeUnit(final String value) {
+		TimeUnit result1 = null;
+		TimeUnit result2 = null;
+		String valueUC = value.toUpperCase();
+		try {
+			result1 = TimeUnit.valueOf(valueUC);
+		} catch (IllegalArgumentException e) {
+			LOGGER.trace("could not find TimeUnit value for: {}", value, e);
+		}
+		if (result1 == null) {
+			try {
+				result2 = TimeUnit.valueOf(valueUC + "S");
+			} catch (IllegalArgumentException e) {
+				LOGGER.trace("could not find TimeUnit value for: {}", value, e);
+			}
+		}
+		return result1 != null ? result1 : result2;
 	}
 
 }
