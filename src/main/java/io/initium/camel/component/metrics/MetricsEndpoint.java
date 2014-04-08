@@ -27,6 +27,7 @@ import org.apache.camel.Expression;
 import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
+import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
 import org.apache.camel.util.CamelContextHelper;
@@ -169,9 +170,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	@Override
 	public Consumer createConsumer(final Processor processor) throws Exception {
 		LOGGER.debug(MARKER, "createConsumer({})", processor);
-		Consumer consumer = new MetricsConsumer(this, processor);
-		configureConsumer(consumer);
-		return consumer;
+		throw new RuntimeCamelException("Cannot consume from a MetricsEndpoint: " + getEndpointUri());
 	}
 
 	@Override
