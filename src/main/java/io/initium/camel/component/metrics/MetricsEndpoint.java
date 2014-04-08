@@ -15,6 +15,7 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,10 +42,13 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
+import com.codahale.metrics.graphite.Graphite;
+import com.codahale.metrics.graphite.GraphiteReporter;
 
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
@@ -126,6 +130,17 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private TimeUnit						consoleReporterRateUnit							= TimeUnit.SECONDS;
 	private long							consoleReporterPeriod							= 1;
 	private TimeUnit						consoleReporterPeriodUnit						= TimeUnit.MINUTES;
+
+	// for graphite reporting
+	private final boolean					isGraphiteReportingEnabled						= false;
+	private GraphiteReporter				graphiteReporter								= null;
+	private TimeUnit						graphiteReporterDurationUnit					= TimeUnit.MILLISECONDS;
+	private TimeUnit						graphiteReporterRateUnit						= TimeUnit.SECONDS;
+	private long							graphiteReporterPeriod							= 1;
+	private TimeUnit						graphiteReporterPeriodUnit						= TimeUnit.MINUTES;
+	private String							graphiteReporterHost							= "localhost";
+	private int								graphiteReporterPort							= 2004;
+	private String							graphiteReporterPrefix							= "prefix";
 
 	/**
 	 * @param uri
@@ -391,14 +406,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.gaugeCacheDurationUnit = OptionHelper.parse(gaugeCacheDurationUnitName, TimeUnit.class);
 	}
 
-	// /**
-	// * @param reservoirType
-	// * the histogramReservoirType to set
-	// */
-	// public void setHistogramReservoir(final String reservoirType) {
-	// this.histogramReservoirType = ReservoirType.find(reservoirType);
-	// }
-
 	/**
 	 * @param gaugeName
 	 *            the gaugeName to set
@@ -416,29 +423,71 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param graphiteReporterDurationUnitName
+	 *            the graphiteReporterDurationUnit to set
+	 */
+	public void setGraphiteReporterDurationUnit(final String graphiteReporterDurationUnitName) {
+		this.graphiteReporterDurationUnit = OptionHelper.parse(graphiteReporterDurationUnitName, TimeUnit.class);
+	}
+
+	/**
+	 * @param graphiteReporterHost
+	 *            the graphiteReporterHost to set
+	 */
+	public void setGraphiteReporterHost(final String graphiteReporterHost) {
+		this.graphiteReporterHost = graphiteReporterHost;
+	}
+
+	/**
+	 * @param graphiteReporterPeriod
+	 *            the graphiteReporterPeriod to set
+	 */
+	public void setGraphiteReporterPeriod(final String graphiteReporterPeriod) {
+		long duration = Long.parseLong(graphiteReporterPeriod);
+		this.graphiteReporterPeriod = duration;
+
+	}
+
+	/**
+	 * @param graphiteReporterPeriodUnitName
+	 *            the graphiteReporterPeriodUnit to set
+	 */
+	public void setGraphiteReporterPeriodUnit(final String graphiteReporterPeriodUnitName) {
+		this.graphiteReporterPeriodUnit = OptionHelper.parse(graphiteReporterPeriodUnitName, TimeUnit.class);
+	}
+
+	/**
+	 * @param graphiteReporterPort
+	 *            the graphiteReporterPort to set
+	 */
+	public void setGraphiteReporterPort(final String graphiteReporterPort) {
+		int duration = Integer.parseInt(graphiteReporterPort);
+		this.graphiteReporterPort = duration;
+	}
+
+	/**
+	 * @param graphiteReporterPrefix
+	 *            the graphiteReporterPrefix to set
+	 */
+	public void setGraphiteReporterPrefix(final String graphiteReporterPrefix) {
+		this.graphiteReporterPrefix = graphiteReporterPrefix;
+	}
+
+	/**
+	 * @param graphiteReporterRateUnitName
+	 *            the graphiteReporterRateUnit to set
+	 */
+	public void setGraphiteReporterRateUnit(final String graphiteReporterRateUnitName) {
+		this.graphiteReporterRateUnit = OptionHelper.parse(graphiteReporterRateUnitName, TimeUnit.class);
+	}
+
+	/**
 	 * @param histogramName
 	 *            the histogramName to set
 	 */
 	public void setHistogramName(final String histogramName) {
 		this.histogramName = histogramName;
 	}
-
-	// /**
-	// * @param slidingTimeWindowDuration
-	// * the slidingTimeWindowDuration to set
-	// */
-	// public void setSlidingTimeWindowDuration(final String slidingTimeWindowDuration) {
-	// long duration = Long.parseLong(slidingTimeWindowDuration);
-	// this.slidingTimeWindowDuration = duration;
-	// }
-	//
-	// /**
-	// * @param slidingTimeWindowDurationUnit
-	// * the slidingTimeWindowDurationUnit to set
-	// */
-	// public void setSlidingTimeWindowDurationUnit(final String slidingTimeWindowDurationUnit) {
-	// this.slidingTimeWindowDurationUnit = TimeUnit.valueOf(slidingTimeWindowDurationUnit.toUpperCase());
-	// }
 
 	/**
 	 * @param histogramReservoirName
@@ -659,8 +708,21 @@ public class MetricsEndpoint extends DefaultEndpoint {
 					.convertRatesTo(this.consoleReporterRateUnit)
 					.build();
 			// @formatter:on
-			// reporter.start(1, TimeUnit.MINUTES);
 		}
+		// graphite reporting
+		if (this.isGraphiteReportingEnabled) {
+			final Graphite graphite = new Graphite(new InetSocketAddress(this.graphiteReporterHost, this.graphiteReporterPort));
+			// @formatter:off
+			this.graphiteReporter = GraphiteReporter
+					.forRegistry(this.metricRegistry)
+					.prefixedWith(this.graphiteReporterPrefix)
+					.convertDurationsTo(this.graphiteReporterDurationUnit)
+					.convertRatesTo(this.graphiteReporterRateUnit)
+					.filter(MetricFilter.ALL)
+					.build(graphite);
+			// @formatter:off
+		}
+
 	}
 
 	/**
@@ -709,6 +771,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (this.consoleReporter != null) {
 			this.consoleReporter.start(this.consoleReporterPeriod, this.consoleReporterPeriodUnit);
 		}
+		if (this.graphiteReporter != null) {
+			this.graphiteReporter.start(this.graphiteReporterPeriod, this.graphiteReporterPeriodUnit);
+		}	
 	}
 
 	@Override
@@ -721,6 +786,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (this.consoleReporter != null) {
 			this.consoleReporter.stop();
 		}
+		if (this.graphiteReporter != null) {
+			this.graphiteReporter.stop();
+		}	
 	}
 
 	@Override
