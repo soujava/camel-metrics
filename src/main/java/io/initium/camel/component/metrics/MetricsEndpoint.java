@@ -80,10 +80,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	// basic fields
 	private final String					name;
+	private final MetricsComponent			metricsComponent;
 	private final MetricRegistry			metricRegistry;
 	private String							jmxDomain										= DEFAULT_JMX_DOMAIN;
 
-	// for default metricsz
+	// for default metrics
 	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
 	private long							lastExchangeTime								= System.nanoTime();
 	private Meter							exchangeRate									= null;
@@ -145,17 +146,19 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	/**
 	 * @param uri
-	 * @param component
+	 * @param metricsComponent
 	 * @param name
 	 * @param parameters
 	 * @throws Exception
 	 */
-	public MetricsEndpoint(final String uri, final MetricsComponent component, final String name, final Map<String, Object> parameters) throws Exception {
-		super(uri, component);
-		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, component, parameters);
+	public MetricsEndpoint(final String uri, final MetricsComponent metricsComponent, final String name, final Map<String, Object> parameters) throws Exception {
+		super(uri, metricsComponent);
+		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		this.name = name;
-		this.metricRegistry = component.getMetricRegistry();
+		this.metricsComponent = metricsComponent;
+		this.metricsComponent.validateName(this.name);
+		this.metricRegistry = metricsComponent.getMetricRegistry();
 		switch (this.timingAction) {
 			case STOP:
 				LOGGER.debug(MARKER, "skipping initialization, timingAction={}", this.timingAction);

@@ -15,9 +15,12 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.camel.Endpoint;
+import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.impl.UriEndpointComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +50,7 @@ public class MetricsComponent extends UriEndpointComponent {
 
 	// fields
 	private final MetricRegistry	metricRegistry;
+	private final Set<String>		metricNames			= new HashSet<String>();
 
 	/**
 	 * 
@@ -63,6 +67,18 @@ public class MetricsComponent extends UriEndpointComponent {
 	 */
 	public MetricRegistry getMetricRegistry() {
 		return this.metricRegistry;
+	}
+
+	/**
+	 * @param name
+	 */
+	public void validateName(final String name) {
+		synchronized (this.metricNames) {
+			if (this.metricNames.contains(name)) {
+				throw new RuntimeCamelException("duplicate metric name found: " + name);
+			}
+			this.metricNames.add(name);
+		}
 	}
 
 	@Override
