@@ -73,35 +73,37 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private static final String				SELF											= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger				LOGGER											= LoggerFactory.getLogger(SELF);
 
-	// fields
+	// basic fields
 	private final String					name;
-	private String							context											= DEFAULT_CONTEXT;
 	private final MetricRegistry			metricRegistry;
+	private String							context											= DEFAULT_CONTEXT;
+
+	// for default metrics
 	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
 	private long							lastExchangeTime								= System.nanoTime();
-	private Meter							exchangeRate;
+	private Meter							exchangeRate									= null;
 	private Timer							internalTimer									= null;
-	private Exchange						lastExchange;
+	private Exchange						lastExchange									= null;
 	private boolean							isInternalTimerEnabled							= false;
 	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
 
 	// for timing metrics
 	private Timer							timer											= null;
 	private String							timingName										= "timing";
-	private String							timing;
+	private String							timingActionName								= null;
 	private TimingAction					timingAction									= TimingAction.NOOP;
 	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
 	private long							timingReservoirSlidingTimeWindowDuration		= 1;
 	private TimeUnit						timingReservoirSlidingTimeWindowDurationUnit	= TimeUnit.HOURS;
 
 	// for custom histogram metrics
-	private Histogram						histogram;
+	private Histogram						histogram										= null;
 	private String							histogramName									= "histogram";
 	private Expression						histogramValue									= null;
 	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
 
 	// for custom counter metrics
-	private Counter							counter;
+	private Counter							counter											= null;
 	private String							counterName										= "count";
 	private Expression						counterDelta									= null;
 
@@ -113,13 +115,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	// for jmx reporting
 	private boolean							isJmxReportingEnabled							= true;
-	private JmxReporter						jmxReporter;
+	private JmxReporter						jmxReporter										= null;
 	private TimeUnit						jmxReporterDurationUnit							= TimeUnit.MILLISECONDS;
 	private TimeUnit						jmxReporterRateUnit								= TimeUnit.SECONDS;
 
 	// for console reporting
 	private boolean							isConsoleReportingEnabled						= false;
-	private ConsoleReporter					consoleReporter;
+	private ConsoleReporter					consoleReporter									= null;
 	private TimeUnit						consoleReporterDurationUnit						= TimeUnit.MILLISECONDS;
 	private TimeUnit						consoleReporterRateUnit							= TimeUnit.SECONDS;
 	private long							consoleReporterPeriod							= 1;
@@ -245,7 +247,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @return the timing
 	 */
 	public String getTiming() {
-		return this.timing;
+		return this.timingActionName;
 	}
 
 	/**
@@ -389,14 +391,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.gaugeCacheDurationUnit = OptionHelper.parse(gaugeCacheDurationUnitName, TimeUnit.class);
 	}
 
-	/**
-	 * @param gaugeName
-	 *            the gaugeName to set
-	 */
-	public void setGaugeName(final String gaugeName) {
-		this.gaugeName = gaugeName;
-	}
-
 	// /**
 	// * @param reservoirType
 	// * the histogramReservoirType to set
@@ -404,6 +398,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// public void setHistogramReservoir(final String reservoirType) {
 	// this.histogramReservoirType = ReservoirType.find(reservoirType);
 	// }
+
+	/**
+	 * @param gaugeName
+	 *            the gaugeName to set
+	 */
+	public void setGaugeName(final String gaugeName) {
+		this.gaugeName = gaugeName;
+	}
 
 	/**
 	 * @param gaugeValue
@@ -419,14 +421,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setHistogramName(final String histogramName) {
 		this.histogramName = histogramName;
-	}
-
-	/**
-	 * @param histogramReservoirName
-	 *            the histogramReservoir to set
-	 */
-	public void setHistogramReservoir(final String histogramReservoirName) {
-		this.histogramReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), histogramReservoirName, Reservoir.class);
 	}
 
 	// /**
@@ -445,6 +439,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// public void setSlidingTimeWindowDurationUnit(final String slidingTimeWindowDurationUnit) {
 	// this.slidingTimeWindowDurationUnit = TimeUnit.valueOf(slidingTimeWindowDurationUnit.toUpperCase());
 	// }
+
+	/**
+	 * @param histogramReservoirName
+	 *            the histogramReservoir to set
+	 */
+	public void setHistogramReservoir(final String histogramReservoirName) {
+		this.histogramReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), histogramReservoirName, Reservoir.class);
+	}
 
 	/**
 	 * @param histogramValue
@@ -486,12 +488,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param timing
+	 * @param timingActionName
 	 *            the timing to set
 	 */
-	public void setTiming(final String timing) {
-		this.timing = timing;
-		this.timingAction = TimingAction.valueOf(timing.toUpperCase());
+	public void setTiming(final String timingActionName) {
+		this.timingActionName = timingActionName;
+		this.timingAction = TimingAction.valueOf(timingActionName.toUpperCase());
 	}
 
 	/**
