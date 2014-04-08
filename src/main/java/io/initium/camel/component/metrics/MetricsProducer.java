@@ -49,8 +49,8 @@ public class MetricsProducer extends DefaultProducer {
 	/**
 	 * @return
 	 */
-	private static String getFullTimingName(final String contextName, final String metricName, final String timingName) {
-		return MetricRegistry.name(contextName, metricName, timingName);
+	private static String getFullTimingName(final String metricName, final String timingName) {
+		return MetricRegistry.name(metricName, timingName);
 	}
 
 	/**
@@ -169,7 +169,7 @@ public class MetricsProducer extends DefaultProducer {
 		Map<String, Context> map = getTimerContextMap(exchange);
 		if (map != null) {
 			// stop previous context if it exists
-			Context context = map.get(getFullTimingName(this.endpoint.getContext(), this.endpoint.getName(), this.endpoint.getTimingName()));
+			Context context = map.get(getFullTimingName(this.endpoint.getName(), this.endpoint.getTimingName()));
 			if (context != null) {
 				context.stop();
 			}
