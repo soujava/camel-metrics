@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Gauge;
@@ -90,8 +91,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private Histogram						histogram;
 	private Expression						gaugeValue										= null;
 	private Exchange						lastExchange;
-	private TimeUnit						durationUnit									= TimeUnit.MILLISECONDS;
-	private TimeUnit						rateUnit										= TimeUnit.SECONDS;
+	private TimeUnit						jmxDurationUnit									= TimeUnit.MILLISECONDS;
+	private TimeUnit						jmxRateUnit										= TimeUnit.SECONDS;
 	private boolean							isInternalTimerEnabled							= false;
 	private long							gaugeCacheDuration								= 10;
 	private TimeUnit						gaugeCacheDurationUnit							= TimeUnit.SECONDS;
@@ -106,6 +107,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
 	private long							timingReservoirSlidingTimeWindowDuration		= 1;
 	private TimeUnit						timingReservoirSlidingTimeWindowDurationUnit	= TimeUnit.HOURS;
+	private final boolean					isConsoleReportingEnabled						= false;
+	private ConsoleReporter					consoleReporter;
+	private final TimeUnit					consoleDurationUnit								= TimeUnit.MILLISECONDS;
+	private final TimeUnit					consoleRateUnit									= TimeUnit.SECONDS;
+	private final long						consoleReporterPeriod							= 1;
+	private final TimeUnit					consoleReporterPeriodUnit						= TimeUnit.MINUTES;
 
 	/**
 	 * @param uri
@@ -168,13 +175,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @return the durationUnit
-	 */
-	public TimeUnit getDurationUnit() {
-		return this.durationUnit;
-	}
-
-	/**
 	 * @return the exchangeRateMetric
 	 */
 	public Meter getExchangeRate() {
@@ -203,17 +203,24 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @return the jmxDurationUnit
+	 */
+	public TimeUnit getJmxDurationUnit() {
+		return this.jmxDurationUnit;
+	}
+
+	/**
+	 * @return the jmxRateUnit
+	 */
+	public TimeUnit getJmxRateUnit() {
+		return this.jmxRateUnit;
+	}
+
+	/**
 	 * @return
 	 */
 	public String getName() {
 		return this.name;
-	}
-
-	/**
-	 * @return the rateUnit
-	 */
-	public TimeUnit getRateUnit() {
-		return this.rateUnit;
 	}
 
 	/**
@@ -300,15 +307,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param durationUnitName
-	 *            the durationUnitName to set
-	 */
-	public void setDurationUnit(final String durationUnitName) {
-		this.durationUnit = TimeUnitUtils.getTimeUnit(durationUnitName);
-		this.durationUnit = TimeUnitUtils.getTimeUnit(durationUnitName);
-	}
-
-	/**
 	 * @param internalTimerEnabled
 	 *            the internalTimerEnabled to set
 	 */
@@ -327,11 +325,27 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param enableJmxReporting
+	 */
+	public void setEnableJmxReporting(final String enableJmxReporting) {
+		if ("1".equals(enableJmxReporting)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("yes".equalsIgnoreCase(enableJmxReporting)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("ja".equalsIgnoreCase(enableJmxReporting)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("si".equalsIgnoreCase(enableJmxReporting)) {
+			this.isJmxReportingEnabled = true;
+		} else {
+			this.isJmxReportingEnabled = Boolean.parseBoolean(enableJmxReporting);
+		}
+	}
+
+	/**
 	 * @param gaugeCacheDuration
 	 *            the gaugeCacheDuration to set
 	 */
 	public void setGaugeCacheDuration(final String gaugeCacheDuration) {
-		// TODO move this to primitive
 		long duration = Long.parseLong(gaugeCacheDuration);
 		this.gaugeCacheDuration = duration;
 	}
@@ -418,20 +432,20 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// }
 
 	/**
-	 * @param jmxReportingEnabled
+	 * @param jmxDurationUnitName
+	 *            the durationUnitName to set
 	 */
-	public void setJmxReportingEnabled(final String jmxReportingEnabled) {
-		if ("1".equals(jmxReportingEnabled)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("yes".equalsIgnoreCase(jmxReportingEnabled)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("ja".equalsIgnoreCase(jmxReportingEnabled)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("si".equalsIgnoreCase(jmxReportingEnabled)) {
-			this.isJmxReportingEnabled = true;
-		} else {
-			this.isJmxReportingEnabled = Boolean.parseBoolean(jmxReportingEnabled);
-		}
+	public void setJmxDurationUnit(final String jmxDurationUnitName) {
+		this.jmxDurationUnit = TimeUnitUtils.getTimeUnit(jmxDurationUnitName);
+		this.jmxDurationUnit = TimeUnitUtils.getTimeUnit(jmxDurationUnitName);
+	}
+
+	/**
+	 * @param jmxRateUnitName
+	 *            the rateUnitName to set
+	 */
+	public void setJmxRateUnit(final String jmxRateUnitName) {
+		this.jmxRateUnit = TimeUnitUtils.getTimeUnit(jmxRateUnitName);
 	}
 
 	/**
@@ -439,14 +453,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setLastExchange(final Exchange lastExchange) {
 		this.lastExchange = lastExchange;
-	}
-
-	/**
-	 * @param rateUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setRateUnit(final String rateUnitName) {
-		this.rateUnit = TimeUnitUtils.getTimeUnit(rateUnitName);
 	}
 
 	/**
@@ -607,10 +613,21 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			this.jmxReporter = JmxReporter
 					.forRegistry(this.metricRegistry)
 					.inDomain(this.context)
-					.convertDurationsTo(this.durationUnit)
-					.convertRatesTo(this.rateUnit)
+					.convertDurationsTo(this.jmxDurationUnit)
+					.convertRatesTo(this.jmxRateUnit)
 					.build();
 			// @formatter:on
+		}
+		// console reporting
+		if (this.isConsoleReportingEnabled) {
+			// @formatter:off
+			this.consoleReporter = ConsoleReporter
+					.forRegistry(this.metricRegistry)
+					.convertDurationsTo(this.consoleDurationUnit)
+					.convertRatesTo(this.consoleRateUnit)
+					.build();
+			// @formatter:on
+			// reporter.start(1, TimeUnit.MINUTES);
 		}
 	}
 
@@ -657,6 +674,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (this.jmxReporter != null) {
 			this.jmxReporter.start();
 		}
+		if (this.consoleReporter != null) {
+			this.consoleReporter.start(this.consoleReporterPeriod, this.consoleReporterPeriodUnit);
+		}
 	}
 
 	@Override
@@ -665,6 +685,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "doStop()");
 		if (this.jmxReporter != null) {
 			this.jmxReporter.stop();
+		}
+		if (this.consoleReporter != null) {
+			this.consoleReporter.stop();
 		}
 	}
 
