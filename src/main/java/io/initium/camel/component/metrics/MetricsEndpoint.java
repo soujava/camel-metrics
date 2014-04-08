@@ -46,7 +46,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
-import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
@@ -75,74 +74,72 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	// logging
-	private static final String				SELF											= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER											= LoggerFactory.getLogger(SELF);
+	private static final String				SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER							= LoggerFactory.getLogger(SELF);
 
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
 	private final MetricRegistry			metricRegistry;
-	private String							jmxDomain										= DEFAULT_JMX_DOMAIN;
+	private String							jmxDomain						= DEFAULT_JMX_DOMAIN;
 
 	// for default metrics
-	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
-	private long							lastExchangeTime								= System.nanoTime();
-	private Meter							exchangeRate									= null;
-	private Timer							internalTimer									= null;
-	private Exchange						lastExchange									= null;
-	private boolean							isInternalTimerEnabled							= false;
-	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
+	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
+	private long							lastExchangeTime				= System.nanoTime();
+	private Meter							exchangeRate					= null;
+	private Timer							internalTimer					= null;
+	private Exchange						lastExchange					= null;
+	private boolean							isInternalTimerEnabled			= false;
+	private Reservoir						intervalReservoir				= new ExponentiallyDecayingReservoir();
 
 	// for timing metrics
-	private Timer							timer											= null;
-	private String							timingName										= "timing";
-	private String							timingActionName								= null;
-	private TimingAction					timingAction									= TimingAction.NOOP;
-	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
-	private long							timingReservoirSlidingTimeWindowDuration		= 1;
-	private TimeUnit						timingReservoirSlidingTimeWindowDurationUnit	= TimeUnit.HOURS;
+	private Timer							timer							= null;
+	private String							timingName						= "timing";
+	private String							timingActionName				= null;
+	private TimingAction					timingAction					= TimingAction.NOOP;
+	private Reservoir						timingReservoir					= new ExponentiallyDecayingReservoir();
 
 	// for custom histogram metrics
-	private Histogram						histogram										= null;
-	private String							histogramName									= "histogram";
-	private Expression						histogramValue									= null;
-	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
+	private Histogram						histogram						= null;
+	private String							histogramName					= "histogram";
+	private Expression						histogramValue					= null;
+	private Reservoir						histogramReservoir				= new ExponentiallyDecayingReservoir();
 
 	// for custom counter metrics
-	private Counter							counter											= null;
-	private String							counterName										= "count";
-	private Expression						counterDelta									= null;
+	private Counter							counter							= null;
+	private String							counterName						= "count";
+	private Expression						counterDelta					= null;
 
 	// for custom gauge metrics
-	private String							gaugeName										= "gauge";
-	private Expression						gaugeValue										= null;
-	private long							gaugeCacheDuration								= 10;
-	private TimeUnit						gaugeCacheDurationUnit							= TimeUnit.SECONDS;
+	private String							gaugeName						= "gauge";
+	private Expression						gaugeValue						= null;
+	private long							gaugeCacheDuration				= 10;
+	private TimeUnit						gaugeCacheDurationUnit			= TimeUnit.SECONDS;
 
 	// for jmx reporting
-	private boolean							isJmxReportingEnabled							= true;
-	private JmxReporter						jmxReporter										= null;
-	private TimeUnit						jmxReporterDurationUnit							= TimeUnit.MILLISECONDS;
-	private TimeUnit						jmxReporterRateUnit								= TimeUnit.SECONDS;
+	private boolean							isJmxReportingEnabled			= true;
+	private JmxReporter						jmxReporter						= null;
+	private TimeUnit						jmxReporterDurationUnit			= TimeUnit.MILLISECONDS;
+	private TimeUnit						jmxReporterRateUnit				= TimeUnit.SECONDS;
 
 	// for console reporting
-	private boolean							isConsoleReportingEnabled						= false;
-	private ConsoleReporter					consoleReporter									= null;
-	private TimeUnit						consoleReporterDurationUnit						= TimeUnit.MILLISECONDS;
-	private TimeUnit						consoleReporterRateUnit							= TimeUnit.SECONDS;
-	private long							consoleReporterPeriod							= 1;
-	private TimeUnit						consoleReporterPeriodUnit						= TimeUnit.MINUTES;
+	private boolean							isConsoleReportingEnabled		= false;
+	private ConsoleReporter					consoleReporter					= null;
+	private TimeUnit						consoleReporterDurationUnit		= TimeUnit.MILLISECONDS;
+	private TimeUnit						consoleReporterRateUnit			= TimeUnit.SECONDS;
+	private long							consoleReporterPeriod			= 1;
+	private TimeUnit						consoleReporterPeriodUnit		= TimeUnit.MINUTES;
 
 	// for graphite reporting
-	private boolean							isGraphiteReportingEnabled						= false;
-	private GraphiteReporter				graphiteReporter								= null;
-	private TimeUnit						graphiteReporterDurationUnit					= TimeUnit.MILLISECONDS;
-	private TimeUnit						graphiteReporterRateUnit						= TimeUnit.SECONDS;
-	private long							graphiteReporterPeriod							= 1;
-	private TimeUnit						graphiteReporterPeriodUnit						= TimeUnit.MINUTES;
-	private String							graphiteReporterHost							= "localhost";
-	private int								graphiteReporterPort							= 2004;
-	private String							graphiteReporterPrefix							= "prefix";
+	private boolean							isGraphiteReportingEnabled		= false;
+	private GraphiteReporter				graphiteReporter				= null;
+	private TimeUnit						graphiteReporterDurationUnit	= TimeUnit.MILLISECONDS;
+	private TimeUnit						graphiteReporterRateUnit		= TimeUnit.SECONDS;
+	private long							graphiteReporterPeriod			= 1;
+	private TimeUnit						graphiteReporterPeriodUnit		= TimeUnit.MINUTES;
+	private String							graphiteReporterHost			= "localhost";
+	private int								graphiteReporterPort			= 2004;
+	private String							graphiteReporterPrefix			= "prefix";
 
 	/**
 	 * @param uri
@@ -324,9 +321,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @param consoleReporterPeriod
 	 *            the gaugeCacheDuration to set
 	 */
-	public void setConsoleReporterPeriod(final String consoleReporterPeriod) {
-		long duration = Long.parseLong(consoleReporterPeriod);
-		this.consoleReporterPeriod = duration;
+	public void setConsoleReporterPeriod(final long consoleReporterPeriod) {
+		this.consoleReporterPeriod = consoleReporterPeriod;
 	}
 
 	/**
@@ -394,9 +390,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @param gaugeCacheDuration
 	 *            the gaugeCacheDuration to set
 	 */
-	public void setGaugeCacheDuration(final String gaugeCacheDuration) {
-		long duration = Long.parseLong(gaugeCacheDuration);
-		this.gaugeCacheDuration = duration;
+	public void setGaugeCacheDuration(final long gaugeCacheDuration) {
+		this.gaugeCacheDuration = gaugeCacheDuration;
 	}
 
 	/**
@@ -443,9 +438,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @param graphiteReporterPeriod
 	 *            the graphiteReporterPeriod to set
 	 */
-	public void setGraphiteReporterPeriod(final String graphiteReporterPeriod) {
-		long duration = Long.parseLong(graphiteReporterPeriod);
-		this.graphiteReporterPeriod = duration;
+	public void setGraphiteReporterPeriod(final long graphiteReporterPeriod) {
+		this.graphiteReporterPeriod = graphiteReporterPeriod;
 
 	}
 
@@ -570,10 +564,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		if (timingReservoirName != null && timingReservoirName.length() > 0) {
 			char firstChar = timingReservoirName.charAt(0);
 			if (firstChar == '#') {
-				this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
-			} else {
-				if ("SlidingTimeWindow".equalsIgnoreCase(timingReservoirName)) {
-					this.timingReservoir = new SlidingTimeWindowReservoir(this.timingReservoirSlidingTimeWindowDuration, this.timingReservoirSlidingTimeWindowDurationUnit);
+				String localName = timingReservoirName.substring(1);
+				if (localName.length() > 0) {
+					this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
 				}
 			}
 			if (this.timingReservoir == null) {
@@ -583,24 +576,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param timingReservoirSlidingTimeWindowDuration
-	 *            the timingReservoirSlidingTimeWindowDuration to set
+	 * @param expression
+	 * @return
 	 */
-	public void setTimingReservoirSlidingTimeWindowDuration(final String timingReservoirSlidingTimeWindowDuration) {
-		this.timingReservoirSlidingTimeWindowDuration = Long.parseLong(timingReservoirSlidingTimeWindowDuration);
-	}
-
-	/**
-	 * @param timingReservoirSlidingTimeWindowDurationUnitName
-	 *            the timingReservoirSlidingTimeWindowDurationUnit to set
-	 */
-	public void setTimingReservoirSlidingTimeWindowDurationUnit(final String timingReservoirSlidingTimeWindowDurationUnitName) {
-		this.timingReservoirSlidingTimeWindowDurationUnit = OptionHelper.parse(timingReservoirSlidingTimeWindowDurationUnitName, TimeUnit.class);
-	}
-
 	private Expression createFileLanguageExpression(final String expression) {
 		Language language;
-		// only use file language if the name is complex (i.e. contains "$")
 		if (expression.contains("$")) {
 			language = getCamelContext().resolveLanguage("file");
 		} else {
