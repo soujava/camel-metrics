@@ -37,13 +37,13 @@ import io.initium.camel.component.metrics.LoggingMetricRegistryListener.Level;
 public class MetricsComponent extends UriEndpointComponent {
 
 	// logging
-	private static final String		SELF			= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger		LOGGER			= LoggerFactory.getLogger(SELF);
+	private static final String		SELF				= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger		LOGGER				= LoggerFactory.getLogger(SELF);
 
 	// constants
-	public static final Marker		MARKER			= MarkerFactory.getMarker("METRICS");
-	public static final String		DEFAULT_CONTEXT	= "io.initium.metrics";
-	public static final String		TIMING_MAP_NAME	= DEFAULT_CONTEXT + ".TimingMap";
+	public static final Marker		MARKER				= MarkerFactory.getMarker("METRICS");
+	public static final String		DEFAULT_JMX_DOMAIN	= "io.initium.metrics";
+	public static final String		TIMING_MAP_NAME		= DEFAULT_JMX_DOMAIN + ".TimingMap";
 
 	// fields
 	private final MetricRegistry	metricRegistry;

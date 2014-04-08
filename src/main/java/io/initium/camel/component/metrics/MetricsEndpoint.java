@@ -53,7 +53,7 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
 
-import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_CONTEXT;
+import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_JMX_DOMAIN;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
 /**
@@ -80,9 +80,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// basic fields
 	private final String					name;
 	private final MetricRegistry			metricRegistry;
-	private String							context											= DEFAULT_CONTEXT;
+	private String							jmxDomain										= DEFAULT_JMX_DOMAIN;
 
-	// for default metrics
+	// for default metricsz
 	private final Map<TimeUnit, Histogram>	intervals										= new HashMap<TimeUnit, Histogram>();
 	private long							lastExchangeTime								= System.nanoTime();
 	private Meter							exchangeRate									= null;
@@ -182,25 +182,18 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @return the context
-	 */
-	public String getContext() {
-		return this.context;
-	}
-
-	/**
 	 * @return the counter
 	 */
 	public Counter getCounter() {
 		return this.counter;
-	};
+	}
 
 	/**
 	 * @return the counter
 	 */
 	public Expression getCounterDelta() {
 		return this.counterDelta;
-	}
+	};
 
 	/**
 	 * @return the exchangeRateMetric
@@ -228,6 +221,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public Timer getInternalTimer() {
 		return this.internalTimer;
+	}
+
+	/**
+	 * @return the context
+	 */
+	public String getJmxDomain() {
+		return this.jmxDomain;
 	}
 
 	/**
@@ -333,14 +333,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setConsoleReporterPeriodUnit(final String consoleReporterPeriodUnitName) {
 		this.consoleReporterPeriodUnit = OptionHelper.parse(consoleReporterPeriodUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param context
-	 *            the context to set
-	 */
-	public void setContext(final String context) {
-		this.context = context;
 	}
 
 	/**
@@ -518,6 +510,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setIntervalReservoir(final String intervalReservoirName) {
 		this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName, Reservoir.class);
+	}
+
+	/**
+	 * @param jmxDomain
+	 *            the jmxDomain to set
+	 */
+	public void setJmxDomain(final String jmxDomain) {
+		this.jmxDomain = jmxDomain;
 	}
 
 	/**
@@ -700,7 +700,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			// @formatter:off
 			this.jmxReporter = JmxReporter
 					.forRegistry(this.metricRegistry)
-					.inDomain(this.context)
+					.inDomain(this.jmxDomain)
 					.convertDurationsTo(this.jmxReporterDurationUnit)
 					.convertRatesTo(this.jmxReporterRateUnit)
 					.build();
