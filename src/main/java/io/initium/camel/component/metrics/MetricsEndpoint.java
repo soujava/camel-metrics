@@ -46,6 +46,7 @@ import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
 
 import io.initium.common.util.StringUtils;
+import io.initium.common.util.TimeUnitUtils;
 
 import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_CONTEXT;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
@@ -82,7 +83,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private Timer							internalTimer									= null;
 	private String							timing;
 	private TimingAction					timingAction									= TimingAction.NOOP;
-	private boolean							isFirstStart									= true;
 	private Timer							timer											= null;
 	private Expression						counterDelta									= null;
 	private Counter							counter;
@@ -101,7 +101,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private String							gaugeName										= "gauge";
 	private Reservoir						intervalReservoir								= new ExponentiallyDecayingReservoir();
 	private Reservoir						histogramReservoir								= new ExponentiallyDecayingReservoir();
-	private final boolean					isJmxReportingEnabled							= true;
+	private boolean							isJmxReportingEnabled							= true;
 
 	private Reservoir						timingReservoir									= new ExponentiallyDecayingReservoir();
 	private long							timingReservoirSlidingTimeWindowDuration		= 1;
@@ -120,6 +120,15 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		this.name = name;
 		this.metricRegistry = new MetricRegistry();
+		switch (this.timingAction) {
+			case STOP:
+				LOGGER.debug(MARKER, "initializeMetrics, timingAction={}", this.timingAction);
+				break;
+			default:
+				initializeMetrics();
+				initializeReporters();
+				break;
+		}
 	}
 
 	@Override
@@ -295,12 +304,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the durationUnitName to set
 	 */
 	public void setDurationUnit(final String durationUnitName) {
-		// TODO generalize this code to the other time unit setters
-		try {
-			this.durationUnit = TimeUnit.valueOf(durationUnitName.toUpperCase() + "S");
-		} catch (IllegalArgumentException e) {
-			this.durationUnit = TimeUnit.valueOf(durationUnitName.toUpperCase());
-		}
+		this.durationUnit = TimeUnitUtils.getTimeUnit(durationUnitName);
+		this.durationUnit = TimeUnitUtils.getTimeUnit(durationUnitName);
 	}
 
 	/**
@@ -326,7 +331,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the gaugeCacheDuration to set
 	 */
 	public void setGaugeCacheDuration(final String gaugeCacheDuration) {
-		// todo move this to primitive
+		// TODO move this to primitive
 		long duration = Long.parseLong(gaugeCacheDuration);
 		this.gaugeCacheDuration = duration;
 	}
@@ -336,7 +341,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the gaugeCacheDurationUnit to set
 	 */
 	public void setGaugeCacheDurationUnit(final String gaugeCacheDurationUnitName) {
-		this.gaugeCacheDurationUnit = TimeUnit.valueOf(gaugeCacheDurationUnitName.toUpperCase());
+		this.gaugeCacheDurationUnit = TimeUnitUtils.getTimeUnit(gaugeCacheDurationUnitName);
 	}
 
 	/**
@@ -413,6 +418,23 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// }
 
 	/**
+	 * @param jmxReportingEnabled
+	 */
+	public void setJmxReportingEnabled(final String jmxReportingEnabled) {
+		if ("1".equals(jmxReportingEnabled)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("yes".equalsIgnoreCase(jmxReportingEnabled)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("ja".equalsIgnoreCase(jmxReportingEnabled)) {
+			this.isJmxReportingEnabled = true;
+		} else if ("si".equalsIgnoreCase(jmxReportingEnabled)) {
+			this.isJmxReportingEnabled = true;
+		} else {
+			this.isJmxReportingEnabled = Boolean.parseBoolean(jmxReportingEnabled);
+		}
+	}
+
+	/**
 	 * @param lastExchange
 	 */
 	public void setLastExchange(final Exchange lastExchange) {
@@ -424,7 +446,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the rateUnitName to set
 	 */
 	public void setRateUnit(final String rateUnitName) {
-		this.rateUnit = TimeUnit.valueOf(rateUnitName.toUpperCase());
+		this.rateUnit = TimeUnitUtils.getTimeUnit(rateUnitName);
 	}
 
 	/**
@@ -477,7 +499,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the timingReservoirSlidingTimeWindowDurationUnit to set
 	 */
 	public void setTimingReservoirSlidingTimeWindowDurationUnit(final String timingReservoirSlidingTimeWindowDurationUnitName) {
-		this.timingReservoirSlidingTimeWindowDurationUnit = TimeUnit.valueOf(timingReservoirSlidingTimeWindowDurationUnitName.toUpperCase());
+		this.timingReservoirSlidingTimeWindowDurationUnit = TimeUnitUtils.getTimeUnit(timingReservoirSlidingTimeWindowDurationUnitName);
 	}
 
 	private Expression createFileLanguageExpression(final String expression) {
@@ -492,30 +514,18 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param timeUnit
+	 * @return
+	 */
+	private String getPrettyName(final TimeUnit timeUnit) {
+		return StringUtils.capitalize(timeUnit.toString());
+	}
+
+	/**
 	 * 
 	 */
-	private void doFirstStartIfNeeded() {
-		LOGGER.debug(MARKER, "doFirstStartIfNeeded()");
-		LOGGER.debug(MARKER, "isFirstStart={}, this.timingAction={}", this.isFirstStart, this.timingAction);
-		if (!this.isFirstStart || this.timingAction == TimingAction.STOP) {
-			LOGGER.debug(MARKER, "skipping first startup");
-			return;
-		}
-		LOGGER.debug(MARKER, "not skipping first startup");
-
-		this.isFirstStart = false;
-
-		// jmx reporting
-		if (this.isJmxReportingEnabled) {
-			// @formatter:off
-			this.jmxReporter = JmxReporter
-					.forRegistry(this.metricRegistry)
-					.inDomain(this.context)
-					.convertDurationsTo(this.durationUnit)
-					.convertRatesTo(this.rateUnit)
-					.build();
-			// @formatter:on
-		}
+	private void initializeMetrics() {
+		LOGGER.debug(MARKER, "initializeMetrics()");
 
 		// Exchange Rate
 		String exchangeRateMetricName = MetricRegistry.name(this.name, "rate");
@@ -587,8 +597,21 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		}
 	}
 
-	private String getPrettyName(final TimeUnit timeUnit) {
-		return StringUtils.capitalize(timeUnit.toString());
+	/**
+	 * 
+	 */
+	private void initializeReporters() {
+		// jmx reporting
+		if (this.isJmxReportingEnabled) {
+			// @formatter:off
+			this.jmxReporter = JmxReporter
+					.forRegistry(this.metricRegistry)
+					.inDomain(this.context)
+					.convertDurationsTo(this.durationUnit)
+					.convertRatesTo(this.rateUnit)
+					.build();
+			// @formatter:on
+		}
 	}
 
 	/**
@@ -631,7 +654,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	protected void doStart() throws Exception {
 		super.doStart();
 		LOGGER.debug(MARKER, "doStart()");
-		doFirstStartIfNeeded();
 		if (this.jmxReporter != null) {
 			this.jmxReporter.start();
 		}
