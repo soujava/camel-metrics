@@ -46,6 +46,7 @@ import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.Timer;
 
+import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
 import io.initium.common.util.TimeUnitUtils;
 
@@ -354,18 +355,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 * @param enableConsoleReporting
 	 */
 	public void setEnableConsoleReporting(final String enableConsoleReporting) {
-		// TODO extract into OptionHelper class
-		if ("1".equals(enableConsoleReporting)) {
-			this.isConsoleReportingEnabled = true;
-		} else if ("yes".equalsIgnoreCase(enableConsoleReporting)) {
-			this.isConsoleReportingEnabled = true;
-		} else if ("ja".equalsIgnoreCase(enableConsoleReporting)) {
-			this.isConsoleReportingEnabled = true;
-		} else if ("si".equalsIgnoreCase(enableConsoleReporting)) {
-			this.isConsoleReportingEnabled = true;
-		} else {
-			this.isConsoleReportingEnabled = Boolean.parseBoolean(enableConsoleReporting);
-		}
+		this.isConsoleReportingEnabled = OptionHelper.parse(enableConsoleReporting, Boolean.class);
 	}
 
 	/**
@@ -373,34 +363,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the internalTimerEnabled to set
 	 */
 	public void setEnableInternalTimer(final String internalTimerEnabled) {
-		if ("1".equals(internalTimerEnabled)) {
-			this.isInternalTimerEnabled = true;
-		} else if ("yes".equalsIgnoreCase(internalTimerEnabled)) {
-			this.isInternalTimerEnabled = true;
-		} else if ("ja".equalsIgnoreCase(internalTimerEnabled)) {
-			this.isInternalTimerEnabled = true;
-		} else if ("si".equalsIgnoreCase(internalTimerEnabled)) {
-			this.isInternalTimerEnabled = true;
-		} else {
-			this.isInternalTimerEnabled = Boolean.parseBoolean(internalTimerEnabled);
-		}
+		this.isInternalTimerEnabled = OptionHelper.parse(internalTimerEnabled, Boolean.class);
 	}
 
 	/**
 	 * @param enableJmxReporting
 	 */
 	public void setEnableJmxReporting(final String enableJmxReporting) {
-		if ("1".equals(enableJmxReporting)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("yes".equalsIgnoreCase(enableJmxReporting)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("ja".equalsIgnoreCase(enableJmxReporting)) {
-			this.isJmxReportingEnabled = true;
-		} else if ("si".equalsIgnoreCase(enableJmxReporting)) {
-			this.isJmxReportingEnabled = true;
-		} else {
-			this.isJmxReportingEnabled = Boolean.parseBoolean(enableJmxReporting);
-		}
+		this.isJmxReportingEnabled = OptionHelper.parse(enableJmxReporting, Boolean.class);
 	}
 
 	/**
