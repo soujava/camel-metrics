@@ -132,7 +132,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private TimeUnit						consoleReporterPeriodUnit						= TimeUnit.MINUTES;
 
 	// for graphite reporting
-	private final boolean					isGraphiteReportingEnabled						= false;
+	private boolean							isGraphiteReportingEnabled						= false;
 	private GraphiteReporter				graphiteReporter								= null;
 	private TimeUnit						graphiteReporterDurationUnit					= TimeUnit.MILLISECONDS;
 	private TimeUnit						graphiteReporterRateUnit						= TimeUnit.SECONDS;
@@ -372,6 +372,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setEnableConsoleReporting(final String enableConsoleReporting) {
 		this.isConsoleReportingEnabled = OptionHelper.parse(enableConsoleReporting, Boolean.class);
+	}
+
+	/**
+	 * @param enableGraphiteReporting
+	 */
+	public void setEnableGraphiteReporting(final String enableGraphiteReporting) {
+		this.isGraphiteReportingEnabled = OptionHelper.parse(enableGraphiteReporting, Boolean.class);
 	}
 
 	/**
