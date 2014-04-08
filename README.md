@@ -76,6 +76,7 @@ Every component added to a route adds latency, we are making every effort to min
 | gaugeCacheDurationUnit |  duration unit to be used for the custom cached gauge | seconds | name of any Java TimeUnit value |
 | intervalReservoir |  name of supplied reservoir to use for the interval  |  | |
 | enableInternalTimer |  enables the internal latency timer | false | true, false |
+| enableJmxReporting |  enables the JMX Reporting | true | true, false |
 
 #What's Next
 1. more configurability for metrics already exposed
