@@ -15,7 +15,10 @@
 // @formatter:on
 package io.initium.common.util;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import net.minidev.json.parser.JSONParser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +45,15 @@ public class OptionHelper {
 			return type.cast(parseBoolean(value));
 		} else if (TimeUnit.class.isAssignableFrom(type)) {
 			return type.cast(parseTimeUnit(value));
+		} else if (List.class.isAssignableFrom(type)) {
+			return type.cast(parseList(value));
 		}
 		return null;
 	}
 
 	/**
+	 * Parses the value for a Boolean.
+	 * 
 	 * @param value
 	 * @return
 	 */
@@ -60,6 +67,34 @@ public class OptionHelper {
 	}
 
 	/**
+	 * Parses the value for a List. Assumes the value is kind like JSON.
+	 * 
+	 * @param value
+	 * @return
+	 */
+	private static List<String> parseList(final String value) {
+		JSONParser jsonParser = new JSONParser(JSONParser.MODE_PERMISSIVE);
+		List<String> result = null;
+		String lclValue = value;
+		try {
+			result = (List<String>) jsonParser.parse(lclValue);
+		} catch (Exception e) {
+			LOGGER.debug("could not parse raw value as List: {}", value);
+		}
+		if (result == null) {
+			try {
+				lclValue = "[" + value + "]";
+				result = (List<String>) jsonParser.parse(lclValue);
+			} catch (Exception e) {
+				LOGGER.debug("could not parse encapsulated value as List: {}", lclValue);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Parses the value for a TimeUnit.
+	 * 
 	 * @param value
 	 * @return
 	 */

@@ -74,72 +74,72 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	// logging
-	private static final String				SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER							= LoggerFactory.getLogger(SELF);
+	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
 
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
 	private final MetricRegistry			metricRegistry;
-	private String							jmxDomain						= DEFAULT_JMX_DOMAIN;
+	private String							jmxDomain				= DEFAULT_JMX_DOMAIN;
 
 	// for default metrics
-	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
-	private long							lastExchangeTime				= System.nanoTime();
-	private Meter							exchangeRate					= null;
-	private Timer							internalTimer					= null;
-	private Exchange						lastExchange					= null;
-	private boolean							isInternalTimerEnabled			= false;
-	private Reservoir						intervalReservoir				= new ExponentiallyDecayingReservoir();
+	private final Map<TimeUnit, Histogram>	intervals				= new HashMap<TimeUnit, Histogram>();
+	private long							lastExchangeTime		= System.nanoTime();
+	private Meter							exchangeRate			= null;
+	private Timer							internalTimer			= null;
+	private Exchange						lastExchange			= null;
+	private boolean							isInternalTimerEnabled	= false;
+	private Reservoir						intervalReservoir		= new ExponentiallyDecayingReservoir();
 
 	// for timing metrics
-	private Timer							timer							= null;
-	private String							timingName						= "timing";
-	private String							timingActionName				= null;
-	private TimingAction					timingAction					= TimingAction.NOOP;
-	private Reservoir						timingReservoir					= new ExponentiallyDecayingReservoir();
+	private Timer							timer					= null;
+	private String							timingName				= "timing";
+	private String							timingActionName		= null;
+	private TimingAction					timingAction			= TimingAction.NOOP;
+	private Reservoir						timingReservoir			= new ExponentiallyDecayingReservoir();
 
 	// for custom histogram metrics
-	private Histogram						histogram						= null;
-	private String							histogramName					= "histogram";
-	private Expression						histogramValue					= null;
-	private Reservoir						histogramReservoir				= new ExponentiallyDecayingReservoir();
+	private Histogram						histogram				= null;
+	private String							histogramName			= "histogram";
+	private Expression						histogramValue			= null;
+	private Reservoir						histogramReservoir		= new ExponentiallyDecayingReservoir();
 
 	// for custom counter metrics
-	private Counter							counter							= null;
-	private String							counterName						= "count";
-	private Expression						counterDelta					= null;
+	private Counter							counter					= null;
+	private String							counterName				= "count";
+	private Expression						counterDelta			= null;
 
 	// for custom gauge metrics
-	private String							gaugeName						= "gauge";
-	private Expression						gaugeValue						= null;
-	private long							gaugeCacheDuration				= 10;
-	private TimeUnit						gaugeCacheDurationUnit			= TimeUnit.SECONDS;
+	private String							gaugeName				= "gauge";
+	private Expression						gaugeValue				= null;
+	private long							gaugeCacheDuration		= 10;
+	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
 
 	// for jmx reporting
-	private boolean							isJmxReportingEnabled			= true;
-	private JmxReporter						jmxReporter						= null;
-	private TimeUnit						jmxReporterDurationUnit			= TimeUnit.MILLISECONDS;
-	private TimeUnit						jmxReporterRateUnit				= TimeUnit.SECONDS;
+	private boolean							isJmxEnabled			= true;
+	private JmxReporter						jmxReporter				= null;
+	private TimeUnit						jmxDurationUnit			= TimeUnit.MILLISECONDS;
+	private TimeUnit						jmxRateUnit				= TimeUnit.SECONDS;
 
 	// for console reporting
-	private boolean							isConsoleReportingEnabled		= false;
-	private ConsoleReporter					consoleReporter					= null;
-	private TimeUnit						consoleReporterDurationUnit		= TimeUnit.MILLISECONDS;
-	private TimeUnit						consoleReporterRateUnit			= TimeUnit.SECONDS;
-	private long							consoleReporterPeriod			= 1;
-	private TimeUnit						consoleReporterPeriodUnit		= TimeUnit.MINUTES;
+	private boolean							isConsoleEnabled		= false;
+	private ConsoleReporter					consoleReporter			= null;
+	private TimeUnit						consoleDurationUnit		= TimeUnit.MILLISECONDS;
+	private TimeUnit						consoleRateUnit			= TimeUnit.SECONDS;
+	private long							consolePeriod			= 1;
+	private TimeUnit						consolePeriodUnit		= TimeUnit.MINUTES;
 
 	// for graphite reporting
-	private boolean							isGraphiteReportingEnabled		= false;
-	private GraphiteReporter				graphiteReporter				= null;
-	private TimeUnit						graphiteReporterDurationUnit	= TimeUnit.MILLISECONDS;
-	private TimeUnit						graphiteReporterRateUnit		= TimeUnit.SECONDS;
-	private long							graphiteReporterPeriod			= 1;
-	private TimeUnit						graphiteReporterPeriodUnit		= TimeUnit.MINUTES;
-	private String							graphiteReporterHost			= "localhost";
-	private int								graphiteReporterPort			= 2004;
-	private String							graphiteReporterPrefix			= "prefix";
+	private boolean							isGraphiteEnabled		= false;
+	private GraphiteReporter				graphiteReporter		= null;
+	private TimeUnit						graphiteDurationUnit	= TimeUnit.MILLISECONDS;
+	private TimeUnit						graphiteRateUnit		= TimeUnit.SECONDS;
+	private long							graphitePeriod			= 1;
+	private TimeUnit						graphitePeriodUnit		= TimeUnit.MINUTES;
+	private String							graphiteHost			= "localhost";
+	private int								graphitePort			= 2004;
+	private String							graphitePrefix			= "prefix";
 
 	/**
 	 * @param uri
@@ -230,20 +230,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @return the jmxDurationUnit
-	 */
-	public TimeUnit getJmxDurationUnit() {
-		return this.jmxReporterDurationUnit;
-	}
-
-	/**
-	 * @return the jmxRateUnit
-	 */
-	public TimeUnit getJmxRateUnit() {
-		return this.jmxReporterRateUnit;
-	}
-
-	/**
 	 * @return
 	 */
 	public String getName() {
@@ -302,35 +288,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param consoleReporterDurationUnitName
+	 * @param consoleDurationUnitName
 	 *            the durationUnitName to set
 	 */
-	public void setConsoleDurationUnit(final String consoleReporterDurationUnitName) {
-		this.consoleReporterDurationUnit = OptionHelper.parse(consoleReporterDurationUnitName, TimeUnit.class);
+	public void setConsoleDurationUnit(final String consoleDurationUnitName) {
+		this.consoleDurationUnit = OptionHelper.parse(consoleDurationUnitName, TimeUnit.class);
 	}
 
 	/**
-	 * @param consoleReporterRateUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setConsoleRateUnit(final String consoleReporterRateUnitName) {
-		this.consoleReporterRateUnit = OptionHelper.parse(consoleReporterRateUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param consoleReporterPeriod
+	 * @param consolePeriod
 	 *            the gaugeCacheDuration to set
 	 */
-	public void setConsoleReporterPeriod(final long consoleReporterPeriod) {
-		this.consoleReporterPeriod = consoleReporterPeriod;
+	public void setConsolePeriod(final long consolePeriod) {
+		this.consolePeriod = consolePeriod;
 	}
 
 	/**
-	 * @param consoleReporterPeriodUnitName
+	 * @param consolePeriodUnitName
 	 *            the rateUnitName to set
 	 */
-	public void setConsoleReporterPeriodUnit(final String consoleReporterPeriodUnitName) {
-		this.consoleReporterPeriodUnit = OptionHelper.parse(consoleReporterPeriodUnitName, TimeUnit.class);
+	public void setConsolePeriodUnit(final String consolePeriodUnitName) {
+		this.consolePeriodUnit = OptionHelper.parse(consolePeriodUnitName, TimeUnit.class);
+	}
+
+	/**
+	 * @param consoleRateUnitName
+	 *            the rateUnitName to set
+	 */
+	public void setConsoleRateUnit(final String consoleRateUnitName) {
+		this.consoleRateUnit = OptionHelper.parse(consoleRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -358,17 +344,17 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param enableConsoleReporting
+	 * @param enableConsole
 	 */
-	public void setEnableConsoleReporting(final String enableConsoleReporting) {
-		this.isConsoleReportingEnabled = OptionHelper.parse(enableConsoleReporting, Boolean.class);
+	public void setEnableConsole(final String enableConsole) {
+		this.isConsoleEnabled = OptionHelper.parse(enableConsole, Boolean.class);
 	}
 
 	/**
-	 * @param enableGraphiteReporting
+	 * @param enableGraphite
 	 */
-	public void setEnableGraphiteReporting(final String enableGraphiteReporting) {
-		this.isGraphiteReportingEnabled = OptionHelper.parse(enableGraphiteReporting, Boolean.class);
+	public void setEnableGraphite(final String enableGraphite) {
+		this.isGraphiteEnabled = OptionHelper.parse(enableGraphite, Boolean.class);
 	}
 
 	/**
@@ -380,10 +366,10 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param enableJmxReporting
+	 * @param enableJmx
 	 */
-	public void setEnableJmxReporting(final String enableJmxReporting) {
-		this.isJmxReportingEnabled = OptionHelper.parse(enableJmxReporting, Boolean.class);
+	public void setEnableJmx(final String enableJmx) {
+		this.isJmxEnabled = OptionHelper.parse(enableJmx, Boolean.class);
 	}
 
 	/**
@@ -419,61 +405,60 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param graphiteReporterDurationUnitName
-	 *            the graphiteReporterDurationUnit to set
-	 */
-	public void setGraphiteReporterDurationUnit(final String graphiteReporterDurationUnitName) {
-		this.graphiteReporterDurationUnit = OptionHelper.parse(graphiteReporterDurationUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param graphiteReporterHost
+	 * @param graphiteHost
 	 *            the graphiteReporterHost to set
 	 */
-	public void setGraphiteReporterHost(final String graphiteReporterHost) {
-		this.graphiteReporterHost = graphiteReporterHost;
+	public void setGraphiteHost(final String graphiteHost) {
+		this.graphiteHost = graphiteHost;
 	}
 
 	/**
-	 * @param graphiteReporterPeriod
+	 * @param graphitePeriod
 	 *            the graphiteReporterPeriod to set
 	 */
-	public void setGraphiteReporterPeriod(final long graphiteReporterPeriod) {
-		this.graphiteReporterPeriod = graphiteReporterPeriod;
+	public void setGraphitePeriod(final long graphitePeriod) {
+		this.graphitePeriod = graphitePeriod;
 
 	}
 
 	/**
-	 * @param graphiteReporterPeriodUnitName
-	 *            the graphiteReporterPeriodUnit to set
-	 */
-	public void setGraphiteReporterPeriodUnit(final String graphiteReporterPeriodUnitName) {
-		this.graphiteReporterPeriodUnit = OptionHelper.parse(graphiteReporterPeriodUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param graphiteReporterPort
+	 * @param graphitePort
 	 *            the graphiteReporterPort to set
 	 */
-	public void setGraphiteReporterPort(final String graphiteReporterPort) {
-		int duration = Integer.parseInt(graphiteReporterPort);
-		this.graphiteReporterPort = duration;
+	public void setGraphitePort(final int graphitePort) {
+		this.graphitePort = graphitePort;
 	}
 
 	/**
-	 * @param graphiteReporterPrefix
+	 * @param graphitePrefix
 	 *            the graphiteReporterPrefix to set
 	 */
-	public void setGraphiteReporterPrefix(final String graphiteReporterPrefix) {
-		this.graphiteReporterPrefix = graphiteReporterPrefix;
+	public void setGraphitePrefix(final String graphitePrefix) {
+		this.graphitePrefix = graphitePrefix;
 	}
 
 	/**
-	 * @param graphiteReporterRateUnitName
+	 * @param graphiteDurationUnitName
+	 *            the graphiteReporterDurationUnit to set
+	 */
+	public void setGraphiteReporterDurationUnit(final String graphiteDurationUnitName) {
+		this.graphiteDurationUnit = OptionHelper.parse(graphiteDurationUnitName, TimeUnit.class);
+	}
+
+	/**
+	 * @param graphitePeriodUnitName
+	 *            the graphiteReporterPeriodUnit to set
+	 */
+	public void setGraphiteReporterPeriodUnit(final String graphitePeriodUnitName) {
+		this.graphitePeriodUnit = OptionHelper.parse(graphitePeriodUnitName, TimeUnit.class);
+	}
+
+	/**
+	 * @param graphiteRateUnitName
 	 *            the graphiteReporterRateUnit to set
 	 */
-	public void setGraphiteReporterRateUnit(final String graphiteReporterRateUnitName) {
-		this.graphiteReporterRateUnit = OptionHelper.parse(graphiteReporterRateUnitName, TimeUnit.class);
+	public void setGraphiteReporterRateUnit(final String graphiteRateUnitName) {
+		this.graphiteRateUnit = OptionHelper.parse(graphiteRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -517,19 +502,19 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param jmxReporterDurationUnitName
+	 * @param jmxDurationUnitName
 	 *            the durationUnitName to set
 	 */
-	public void setJmxDurationUnit(final String jmxReporterDurationUnitName) {
-		this.jmxReporterDurationUnit = OptionHelper.parse(jmxReporterDurationUnitName, TimeUnit.class);
+	public void setJmxDurationUnit(final String jmxDurationUnitName) {
+		this.jmxDurationUnit = OptionHelper.parse(jmxDurationUnitName, TimeUnit.class);
 	}
 
 	/**
-	 * @param jmxReporterRateUnitName
+	 * @param jmxRateUnitName
 	 *            the rateUnitName to set
 	 */
-	public void setJmxRateUnit(final String jmxReporterRateUnitName) {
-		this.jmxReporterRateUnit = OptionHelper.parse(jmxReporterRateUnitName, TimeUnit.class);
+	public void setJmxRateUnit(final String jmxRateUnitName) {
+		this.jmxRateUnit = OptionHelper.parse(jmxRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -678,35 +663,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	private void initializeReporters() {
 		// jmx reporting
-		if (this.isJmxReportingEnabled) {
+		if (this.isJmxEnabled) {
 			// @formatter:off
 			this.jmxReporter = JmxReporter
 					.forRegistry(this.metricRegistry)
 					.inDomain(this.jmxDomain)
-					.convertDurationsTo(this.jmxReporterDurationUnit)
-					.convertRatesTo(this.jmxReporterRateUnit)
+					.convertDurationsTo(this.jmxDurationUnit)
+					.convertRatesTo(this.jmxRateUnit)
 					.build();
 			// @formatter:on
 		}
 		// console reporting
-		if (this.isConsoleReportingEnabled) {
+		if (this.isConsoleEnabled) {
 			// @formatter:off
 			this.consoleReporter = ConsoleReporter
 					.forRegistry(this.metricRegistry)
-					.convertDurationsTo(this.consoleReporterDurationUnit)
-					.convertRatesTo(this.consoleReporterRateUnit)
+					.convertDurationsTo(this.consoleDurationUnit)
+					.convertRatesTo(this.consoleRateUnit)
 					.build();
 			// @formatter:on
 		}
 		// graphite reporting
-		if (this.isGraphiteReportingEnabled) {
-			final Graphite graphite = new Graphite(new InetSocketAddress(this.graphiteReporterHost, this.graphiteReporterPort));
-			// @formatter:off
+		if (this.isGraphiteEnabled) {
+			final Graphite graphite = new Graphite(new InetSocketAddress(this.graphiteHost, this.graphitePort));
+			// @formatter:off 
 			this.graphiteReporter = GraphiteReporter
 					.forRegistry(this.metricRegistry)
-					.prefixedWith(this.graphiteReporterPrefix)
-					.convertDurationsTo(this.graphiteReporterDurationUnit)
-					.convertRatesTo(this.graphiteReporterRateUnit)
+					.prefixedWith(this.graphitePrefix)
+					.convertDurationsTo(this.graphiteDurationUnit)
+					.convertRatesTo(this.graphiteRateUnit)
 					.filter(MetricFilter.ALL)
 					.build(graphite);
 			// @formatter:off
@@ -758,10 +743,10 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			this.jmxReporter.start();
 		}
 		if (this.consoleReporter != null) {
-			this.consoleReporter.start(this.consoleReporterPeriod, this.consoleReporterPeriodUnit);
+			this.consoleReporter.start(this.consolePeriod, this.consolePeriodUnit);
 		}
 		if (this.graphiteReporter != null) {
-			this.graphiteReporter.start(this.graphiteReporterPeriod, this.graphiteReporterPeriodUnit);
+			this.graphiteReporter.start(this.graphitePeriod, this.graphitePeriodUnit);
 		}	
 	}
 
