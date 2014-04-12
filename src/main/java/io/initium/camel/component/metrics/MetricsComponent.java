@@ -188,7 +188,15 @@ public class MetricsComponent extends UriEndpointComponent {
 	protected void doStop() throws Exception {
 		super.doStop();
 		LOGGER.debug(MARKER, "doStop()");
-
+		for (JmxReporter jmxReporter : this.jmxReporters) {
+			jmxReporter.stop();
+		}
+		for (ConsoleReporter consoleReporter : this.consoleReporters) {
+			consoleReporter.stop();
+		}
+		for (GraphiteReporter graphiteReporter : this.graphiteReporters) {
+			graphiteReporter.stop();
+		}
 	}
 
 	@Override
