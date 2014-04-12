@@ -15,13 +15,15 @@
 // @formatter:on
 package io.initium.common.util;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import net.minidev.json.parser.JSONParser;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -34,6 +36,9 @@ public class OptionHelper {
 	// logging
 	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
+
+	// constants
+	private static Gson			GSON	= new Gson();
 
 	/**
 	 * @param value
@@ -73,18 +78,18 @@ public class OptionHelper {
 	 * @return
 	 */
 	private static List<String> parseList(final String value) {
-		JSONParser jsonParser = new JSONParser(JSONParser.MODE_PERMISSIVE);
+		Type listType = new TypeToken<List<?>>() {}.getType();
 		List<String> result = null;
 		String lclValue = value;
 		try {
-			result = (List<String>) jsonParser.parse(lclValue);
+			result = GSON.fromJson(lclValue, listType);
 		} catch (Exception e) {
 			LOGGER.debug("could not parse raw value as List: {}", value);
 		}
 		if (result == null) {
 			try {
 				lclValue = "[" + value + "]";
-				result = (List<String>) jsonParser.parse(lclValue);
+				result = GSON.fromJson(lclValue, listType);
 			} catch (Exception e) {
 				LOGGER.debug("could not parse encapsulated value as List: {}", lclValue);
 			}

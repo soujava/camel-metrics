@@ -15,7 +15,6 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,19 +35,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.CachedGauge;
-import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.Timer;
-import com.codahale.metrics.graphite.Graphite;
-import com.codahale.metrics.graphite.GraphiteReporter;
 
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
@@ -116,31 +110,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private long							gaugeCacheDuration		= 10;
 	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
 
-	// for jmx reporting
-	private boolean							isJmxEnabled			= true;
-	private JmxReporter						jmxReporter				= null;
-	private TimeUnit						jmxDurationUnit			= TimeUnit.MILLISECONDS;
-	private TimeUnit						jmxRateUnit				= TimeUnit.SECONDS;
-
-	// for console reporting
-	private boolean							isConsoleEnabled		= false;
-	private ConsoleReporter					consoleReporter			= null;
-	private TimeUnit						consoleDurationUnit		= TimeUnit.MILLISECONDS;
-	private TimeUnit						consoleRateUnit			= TimeUnit.SECONDS;
-	private long							consolePeriod			= 1;
-	private TimeUnit						consolePeriodUnit		= TimeUnit.MINUTES;
-
-	// for graphite reporting
-	private boolean							isGraphiteEnabled		= false;
-	private GraphiteReporter				graphiteReporter		= null;
-	private TimeUnit						graphiteDurationUnit	= TimeUnit.MILLISECONDS;
-	private TimeUnit						graphiteRateUnit		= TimeUnit.SECONDS;
-	private long							graphitePeriod			= 1;
-	private TimeUnit						graphitePeriodUnit		= TimeUnit.MINUTES;
-	private String							graphiteHost			= "localhost";
-	private int								graphitePort			= 2004;
-	private String							graphitePrefix			= "prefix";
-
 	/**
 	 * @param uri
 	 * @param metricsComponent
@@ -154,7 +123,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		this.name = name;
 		this.metricsComponent = metricsComponent;
-		this.metricsComponent.validateName(this.name);
+		// TODO feed defnitions to endpoints
+		this.metricsComponent.registerName(this.name, null);
 		this.metricRegistry = metricsComponent.getMetricRegistry();
 		switch (this.timingAction) {
 			case STOP:
@@ -162,7 +132,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 				break;
 			default:
 				initializeMetrics();
-				initializeReporters();
 				break;
 		}
 	}
@@ -288,38 +257,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param consoleDurationUnitName
-	 *            the durationUnitName to set
-	 */
-	public void setConsoleDurationUnit(final String consoleDurationUnitName) {
-		this.consoleDurationUnit = OptionHelper.parse(consoleDurationUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param consolePeriod
-	 *            the gaugeCacheDuration to set
-	 */
-	public void setConsolePeriod(final long consolePeriod) {
-		this.consolePeriod = consolePeriod;
-	}
-
-	/**
-	 * @param consolePeriodUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setConsolePeriodUnit(final String consolePeriodUnitName) {
-		this.consolePeriodUnit = OptionHelper.parse(consolePeriodUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param consoleRateUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setConsoleRateUnit(final String consoleRateUnitName) {
-		this.consoleRateUnit = OptionHelper.parse(consoleRateUnitName, TimeUnit.class);
-	}
-
-	/**
 	 * @param counter
 	 *            the counter to set
 	 */
@@ -344,32 +281,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param enableConsole
-	 */
-	public void setEnableConsole(final String enableConsole) {
-		this.isConsoleEnabled = OptionHelper.parse(enableConsole, Boolean.class);
-	}
-
-	/**
-	 * @param enableGraphite
-	 */
-	public void setEnableGraphite(final String enableGraphite) {
-		this.isGraphiteEnabled = OptionHelper.parse(enableGraphite, Boolean.class);
-	}
-
-	/**
 	 * @param internalTimerEnabled
 	 *            the internalTimerEnabled to set
 	 */
 	public void setEnableInternalTimer(final String internalTimerEnabled) {
 		this.isInternalTimerEnabled = OptionHelper.parse(internalTimerEnabled, Boolean.class);
-	}
-
-	/**
-	 * @param enableJmx
-	 */
-	public void setEnableJmx(final String enableJmx) {
-		this.isJmxEnabled = OptionHelper.parse(enableJmx, Boolean.class);
 	}
 
 	/**
@@ -402,63 +318,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setGaugeValue(final String gaugeValue) {
 		this.gaugeValue = createFileLanguageExpression(gaugeValue);
-	}
-
-	/**
-	 * @param graphiteHost
-	 *            the graphiteReporterHost to set
-	 */
-	public void setGraphiteHost(final String graphiteHost) {
-		this.graphiteHost = graphiteHost;
-	}
-
-	/**
-	 * @param graphitePeriod
-	 *            the graphiteReporterPeriod to set
-	 */
-	public void setGraphitePeriod(final long graphitePeriod) {
-		this.graphitePeriod = graphitePeriod;
-
-	}
-
-	/**
-	 * @param graphitePort
-	 *            the graphiteReporterPort to set
-	 */
-	public void setGraphitePort(final int graphitePort) {
-		this.graphitePort = graphitePort;
-	}
-
-	/**
-	 * @param graphitePrefix
-	 *            the graphiteReporterPrefix to set
-	 */
-	public void setGraphitePrefix(final String graphitePrefix) {
-		this.graphitePrefix = graphitePrefix;
-	}
-
-	/**
-	 * @param graphiteDurationUnitName
-	 *            the graphiteReporterDurationUnit to set
-	 */
-	public void setGraphiteReporterDurationUnit(final String graphiteDurationUnitName) {
-		this.graphiteDurationUnit = OptionHelper.parse(graphiteDurationUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param graphitePeriodUnitName
-	 *            the graphiteReporterPeriodUnit to set
-	 */
-	public void setGraphiteReporterPeriodUnit(final String graphitePeriodUnitName) {
-		this.graphitePeriodUnit = OptionHelper.parse(graphitePeriodUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param graphiteRateUnitName
-	 *            the graphiteReporterRateUnit to set
-	 */
-	public void setGraphiteReporterRateUnit(final String graphiteRateUnitName) {
-		this.graphiteRateUnit = OptionHelper.parse(graphiteRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -499,22 +358,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setJmxDomain(final String jmxDomain) {
 		this.jmxDomain = jmxDomain;
-	}
-
-	/**
-	 * @param jmxDurationUnitName
-	 *            the durationUnitName to set
-	 */
-	public void setJmxDurationUnit(final String jmxDurationUnitName) {
-		this.jmxDurationUnit = OptionHelper.parse(jmxDurationUnitName, TimeUnit.class);
-	}
-
-	/**
-	 * @param jmxRateUnitName
-	 *            the rateUnitName to set
-	 */
-	public void setJmxRateUnit(final String jmxRateUnitName) {
-		this.jmxRateUnit = OptionHelper.parse(jmxRateUnitName, TimeUnit.class);
 	}
 
 	/**
@@ -659,47 +502,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * 
-	 */
-	private void initializeReporters() {
-		// jmx reporting
-		if (this.isJmxEnabled) {
-			// @formatter:off
-			this.jmxReporter = JmxReporter
-					.forRegistry(this.metricRegistry)
-					.inDomain(this.jmxDomain)
-					.convertDurationsTo(this.jmxDurationUnit)
-					.convertRatesTo(this.jmxRateUnit)
-					.build();
-			// @formatter:on
-		}
-		// console reporting
-		if (this.isConsoleEnabled) {
-			// @formatter:off
-			this.consoleReporter = ConsoleReporter
-					.forRegistry(this.metricRegistry)
-					.convertDurationsTo(this.consoleDurationUnit)
-					.convertRatesTo(this.consoleRateUnit)
-					.build();
-			// @formatter:on
-		}
-		// graphite reporting
-		if (this.isGraphiteEnabled) {
-			final Graphite graphite = new Graphite(new InetSocketAddress(this.graphiteHost, this.graphitePort));
-			// @formatter:off 
-			this.graphiteReporter = GraphiteReporter
-					.forRegistry(this.metricRegistry)
-					.prefixedWith(this.graphitePrefix)
-					.convertDurationsTo(this.graphiteDurationUnit)
-					.convertRatesTo(this.graphiteRateUnit)
-					.filter(MetricFilter.ALL)
-					.build(graphite);
-			// @formatter:off
-		}
-
-	}
-
-	/**
 	 * @return
 	 */
 	private long lastExchangeDelta() {
@@ -739,30 +541,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	protected void doStart() throws Exception {
 		super.doStart();
 		LOGGER.debug(MARKER, "doStart()");
-		if (this.jmxReporter != null) {
-			this.jmxReporter.start();
-		}
-		if (this.consoleReporter != null) {
-			this.consoleReporter.start(this.consolePeriod, this.consolePeriodUnit);
-		}
-		if (this.graphiteReporter != null) {
-			this.graphiteReporter.start(this.graphitePeriod, this.graphitePeriodUnit);
-		}	
 	}
 
 	@Override
 	protected void doStop() throws Exception {
 		super.doStop();
 		LOGGER.debug(MARKER, "doStop()");
-		if (this.jmxReporter != null) {
-			this.jmxReporter.stop();
-		}
-		if (this.consoleReporter != null) {
-			this.consoleReporter.stop();
-		}
-		if (this.graphiteReporter != null) {
-			this.graphiteReporter.stop();
-		}	
 	}
 
 	@Override

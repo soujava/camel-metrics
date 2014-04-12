@@ -1,3 +1,18 @@
+// @formatter:off
+/**
+ * Copyright 2014 Initium.io
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions and limitations under the
+ * License.
+ */
+// @formatter:on
 package io.initium.camel.component.metrics;
 
 import java.util.Random;
@@ -63,7 +78,8 @@ public class MetricsTest extends CamelTestSupport {
 			public void configure() throws Exception {
 				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context1&enableInternalTimer=true");
 				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context2&durationUnit=seConds");
-				from("timer://namedTimer?period=1000").to("metrics://sample?jmxDomain=context3&histogramValue=1");
+				from("timer://myTestTimer?period=100").to("metrics://myMetric01?jmxDomain=domain3a&jmxRateUnit=MINUTES").to("metrics://myMetric02?jmxDomain=comain3b&jmxRateUnit=SECONDS");
+				// from("timer://namedTimer?period=1000").to("metrics://sample?jmxDomain=context3&histogramValue=1");
 				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context4&histogramValue=1&histogramReservoir=slidingTimewindow&slidingTimeWindowDuration=10&slidingTimeWindowDurationUnit=seconds");
 			}
 		});
@@ -74,4 +90,31 @@ public class MetricsTest extends CamelTestSupport {
 
 	}
 
+	@Test
+	// @Ignore
+	public void theThirdTest() throws Exception {
+		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
+		jmxReporterDefinition.setDomain("fosdalDomain");
+		jmxReporterDefinition.setName("fosdalName");
+		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+		consoleReporterDefinition.setName("fosdalName");
+		consoleReporterDefinition.setPeriodDuration(1);
+		consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
+		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition, consoleReporterDefinition);
+		this.context.addComponent("metrics", metricsComponent);
+		this.context.addRoutes(new RouteBuilder() {
+			@Override
+			public void configure() throws Exception {
+				// @formatter:off
+				from("timer://myTestTimer?period=1000")
+					//.to("log://io.initium.metrics?showAll=true&multiline=true")
+					.to("metrics://myMetric01")
+					;
+				// @formatter:on
+			}
+		});
+		this.context.start();
+		TimeUnit.SECONDS.sleep(100);
+		this.context.stop();
+	}
 }
