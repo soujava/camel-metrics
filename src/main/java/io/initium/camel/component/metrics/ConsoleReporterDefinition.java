@@ -18,8 +18,6 @@ package io.initium.camel.component.metrics;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 
@@ -178,7 +176,7 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 
 	@Override
 	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
+		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + "]";
 	}
 
 	/**

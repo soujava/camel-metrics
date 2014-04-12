@@ -18,8 +18,6 @@ package io.initium.camel.component.metrics;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 
@@ -152,7 +150,7 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 
 	@Override
 	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
+		return "JmxReporterDefinition [name=" + this.name + ", domain=" + this.domain + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + "]";
 	}
 
 	/**

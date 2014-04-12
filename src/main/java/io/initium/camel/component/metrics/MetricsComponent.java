@@ -36,13 +36,19 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 
 import io.initium.camel.component.metrics.LoggingMetricRegistryListener.Level;
 
+// TODO implement filters
+// TODO verify LOGGERs all use MARKERS
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.0
  * @since 2014-02-19
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class MetricsComponent extends UriEndpointComponent {
+
+	// TODO remove suppress warnings by refactoring ReporterDefinition
 
 	// logging
 	private static final String									SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
@@ -58,15 +64,11 @@ public class MetricsComponent extends UriEndpointComponent {
 
 	// reporters
 	private final Map<String, ReporterDefinition>				componentReporterDefinitions	= new HashMap<String, ReporterDefinition>();
+	// <String, Map<String, ReporterDefinition>> = <MetricName, <ReporterDefinitionName, ReporterDefinition>
 	private final Map<String, Map<String, ReporterDefinition>>	metricReporterDefinitions		= new HashMap<String, Map<String, ReporterDefinition>>();
 	private final Set<JmxReporter>								jmxReporters					= new HashSet<JmxReporter>();
 	private final Set<ConsoleReporter>							consoleReporters				= new HashSet<ConsoleReporter>();
 	private final Set<GraphiteReporter>							graphiteReporters				= new HashSet<GraphiteReporter>();
-
-	// TODO stop them all
-
-	// TODO on action = stop, warn if other parameters are non-null
-	// TODO verify we have no reporters and stop them (or whatever...)
 
 	/**
 	 * 
@@ -83,6 +85,18 @@ public class MetricsComponent extends UriEndpointComponent {
 			}
 			this.componentReporterDefinitions.put(reporterDefinitionName, reporterDefinition);
 		}
+	}
+
+	public void addReporterDefinition(final String metricName, final ReporterDefinition reporterDefinition) {
+		LOGGER.info("addReporterDefinition: {}={}", metricName, reporterDefinition);
+		Map<String, ReporterDefinition> specificMetricReporterDefinitions = this.metricReporterDefinitions.get(metricName);
+		// TODO consider moving this code to some place more appropriate
+		if (specificMetricReporterDefinitions == null) {
+			specificMetricReporterDefinitions = new HashMap<String, ReporterDefinition>();
+			this.metricReporterDefinitions.put(metricName, specificMetricReporterDefinitions);
+		}
+		// TODO check for duplicate names before putting them in map
+		specificMetricReporterDefinitions.put(reporterDefinition.getName(), reporterDefinition);
 	}
 
 	/**
@@ -108,21 +122,24 @@ public class MetricsComponent extends UriEndpointComponent {
 	private void registerAndStart(final ReporterDefinition reporterDefinition) {
 		if (reporterDefinition instanceof JmxReporterDefinition) {
 			JmxReporterDefinition jmxReporterDefinition = ((JmxReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info("adding JmxReporterDefinition: {}", jmxReporterDefinition);
+			LOGGER.info(MARKER, "adding JmxReporterDefinition: {}", jmxReporterDefinition);
 			JmxReporter jmxReporter = jmxReporterDefinition.buildReporter(this.metricRegistry);
 			this.jmxReporters.add(jmxReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", jmxReporter);
 			jmxReporter.start();
 		} else if (reporterDefinition instanceof ConsoleReporterDefinition) {
 			ConsoleReporterDefinition consoleReporterDefinition = ((ConsoleReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info("adding ConsoleReporterDefinition: {}", consoleReporterDefinition);
+			LOGGER.info(MARKER, "adding ConsoleReporterDefinition: {}", consoleReporterDefinition);
 			ConsoleReporter consoleReporter = consoleReporterDefinition.buildReporter(this.metricRegistry);
 			this.consoleReporters.add(consoleReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", consoleReporter);
 			consoleReporter.start(consoleReporterDefinition.getPeriodDuration(), consoleReporterDefinition.getPeriodDurationUnit());
 		} else if (reporterDefinition instanceof GraphiteReporterDefinition) {
 			GraphiteReporterDefinition graphiteReporterDefinition = ((GraphiteReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info("adding GraphiteReporterDefinition: {}", graphiteReporterDefinition);
+			LOGGER.info(MARKER, "adding GraphiteReporterDefinition: {}", graphiteReporterDefinition);
 			GraphiteReporter graphiteReporter = graphiteReporterDefinition.buildReporter(this.metricRegistry);
 			this.graphiteReporters.add(graphiteReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
 			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
 		} else {
 			LOGGER.warn("unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
@@ -158,7 +175,7 @@ public class MetricsComponent extends UriEndpointComponent {
 		leftoverReporterDefinitions.putAll(this.componentReporterDefinitions);
 		// merge or add each metric level definition then start it
 		for (Entry<String, Map<String, ReporterDefinition>> metricNamedReporterDefinitionsEntry : this.metricReporterDefinitions.entrySet()) {
-			String metricName = metricNamedReporterDefinitionsEntry.getKey();
+			// String metricName = metricNamedReporterDefinitionsEntry.getKey();
 			Map<String, ReporterDefinition> metricReporterDefinitions = metricNamedReporterDefinitionsEntry.getValue();
 			for (Entry<String, ReporterDefinition> metricReporterDefinitionEntry : metricReporterDefinitions.entrySet()) {
 				String reporterDefinitionName = metricReporterDefinitionEntry.getKey();
@@ -176,12 +193,10 @@ public class MetricsComponent extends UriEndpointComponent {
 		}
 		// start the remaining definitions
 		for (Entry<String, ReporterDefinition> leftoverReporterDefinitionEntry : leftoverReporterDefinitions.entrySet()) {
-			String reporterDefinitionName = leftoverReporterDefinitionEntry.getKey();
+			// String reporterDefinitionName = leftoverReporterDefinitionEntry.getKey();
 			ReporterDefinition reporterDefinition = leftoverReporterDefinitionEntry.getValue();
 			registerAndStart(reporterDefinition);
 		}
-
-		// TODO start the remaining reporters (graphite,console,etc)
 	}
 
 	@Override

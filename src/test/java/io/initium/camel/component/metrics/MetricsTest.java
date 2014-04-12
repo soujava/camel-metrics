@@ -94,13 +94,9 @@ public class MetricsTest extends CamelTestSupport {
 	// @Ignore
 	public void theThirdTest() throws Exception {
 		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
-		jmxReporterDefinition.setDomain("fosdalDomain");
-		jmxReporterDefinition.setName("fosdalName");
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
-		consoleReporterDefinition.setName("fosdalName");
-		consoleReporterDefinition.setPeriodDuration(1);
-		consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
-		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition, consoleReporterDefinition);
+		jmxReporterDefinition.setDomain("testDomain");
+		jmxReporterDefinition.setName("testName");
+		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
 		this.context.addComponent("metrics", metricsComponent);
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
@@ -108,13 +104,13 @@ public class MetricsTest extends CamelTestSupport {
 				// @formatter:off
 				from("timer://myTestTimer?period=1000")
 					//.to("log://io.initium.metrics?showAll=true&multiline=true")
-					.to("metrics://myMetric01")
+					.to("metrics://myMetric01?jmxReporters=[{name:testName,domain:testReplacedDomain}]")
 					;
 				// @formatter:on
 			}
 		});
 		this.context.start();
-		TimeUnit.SECONDS.sleep(100);
+		TimeUnit.SECONDS.sleep(200);
 		this.context.stop();
 	}
 }

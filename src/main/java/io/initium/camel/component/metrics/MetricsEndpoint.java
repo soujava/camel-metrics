@@ -15,7 +15,10 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
+import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -43,11 +46,12 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.Timer;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
 
-import static io.initium.camel.component.metrics.MetricsComponent.DEFAULT_JMX_DOMAIN;
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
 /**
@@ -57,6 +61,8 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
  * @since 2014-02-19
  */
 public class MetricsEndpoint extends DefaultEndpoint {
+
+	// TODO on action = stop, warn if other parameters are non-null
 
 	/**
 	 * 
@@ -71,11 +77,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
 
+	// constants
+	private static final Gson				GSON					= new Gson();
+
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
 	private final MetricRegistry			metricRegistry;
-	private String							jmxDomain				= DEFAULT_JMX_DOMAIN;
 
 	// for default metrics
 	private final Map<TimeUnit, Histogram>	intervals				= new HashMap<TimeUnit, Histogram>();
@@ -120,12 +128,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	public MetricsEndpoint(final String uri, final MetricsComponent metricsComponent, final String name, final Map<String, Object> parameters) throws Exception {
 		super(uri, metricsComponent);
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
-		EndpointHelper.setProperties(getCamelContext(), this, parameters);
-		this.name = name;
 		this.metricsComponent = metricsComponent;
-		// TODO feed defnitions to endpoints
+		this.name = name;
 		this.metricsComponent.registerName(this.name, null);
 		this.metricRegistry = metricsComponent.getMetricRegistry();
+		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		switch (this.timingAction) {
 			case STOP:
 				LOGGER.debug(MARKER, "skipping initialization, timingAction={}", this.timingAction);
@@ -192,13 +199,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @return the context
-	 */
-	public String getJmxDomain() {
-		return this.jmxDomain;
-	}
-
-	/**
 	 * @return
 	 */
 	public String getName() {
@@ -254,6 +254,19 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.lastExchangeTime = System.nanoTime();
 		this.exchangeRate.mark();
 		updateAllIntervals(deltaInNanos);
+	}
+
+	/**
+	 * @param consoleReporters
+	 *            the consoleReporters to set
+	 */
+	public void setConsoleReporters(final String consoleReporters) {
+		Type consoleReportersType = new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
+		List<ConsoleReporterDefinition> consoleReporterDefinitions = GSON.fromJson(consoleReporters, consoleReportersType);
+		// TODO check for null defn here (later)
+		for (ConsoleReporterDefinition consoleReporterDefinition : consoleReporterDefinitions) {
+			this.metricsComponent.addReporterDefinition(this.name, consoleReporterDefinition);
+		}
 	}
 
 	/**
@@ -321,6 +334,19 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param graphiteReporters
+	 *            the graphiteReporters to set
+	 */
+	public void setGraphiteReporters(final String graphiteReporters) {
+		Type graphiteReportersType = new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+		List<GraphiteReporterDefinition> graphiteReporterDefinitions = GSON.fromJson(graphiteReporters, graphiteReportersType);
+		// TODO check for null defn here (later)
+		for (GraphiteReporterDefinition graphiteReporterDefinition : graphiteReporterDefinitions) {
+			this.metricsComponent.addReporterDefinition(this.name, graphiteReporterDefinition);
+		}
+	}
+
+	/**
 	 * @param histogramName
 	 *            the histogramName to set
 	 */
@@ -353,11 +379,16 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param jmxDomain
-	 *            the jmxDomain to set
+	 * @param jmxReporters
+	 *            the jmxReporters to set
 	 */
-	public void setJmxDomain(final String jmxDomain) {
-		this.jmxDomain = jmxDomain;
+	public void setJmxReporters(final String jmxReporters) {
+		Type jmxReportersType = new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
+		List<JmxReporterDefinition> jmxReporterDefinitions = GSON.fromJson(jmxReporters, jmxReportersType);
+		// TODO check for null defn here (later)
+		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
+			this.metricsComponent.addReporterDefinition(this.name, jmxReporterDefinition);
+		}
 	}
 
 	/**

@@ -19,8 +19,6 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
@@ -241,7 +239,8 @@ public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteRe
 
 	@Override
 	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
+		return "GraphiteReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", host=" + this.host
+				+ ", port=" + this.port + ", prefix=" + this.prefix + "]";
 	}
 
 	/**
