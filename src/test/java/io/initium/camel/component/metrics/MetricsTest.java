@@ -108,7 +108,7 @@ public class MetricsTest extends CamelTestSupport {
 				// @formatter:off
 				from("timer://myTestTimer?period=1000")
 					//.to("log://io.initium.metrics?showAll=true&multiline=false")
-					.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]")
+					.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]&timing=stop")
 					;
 				// @formatter:on
 			}

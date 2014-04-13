@@ -28,9 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-// TODO implement filters
-// TODO verify LOGGERs all use MARKERS
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>

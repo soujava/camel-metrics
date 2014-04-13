@@ -68,7 +68,6 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 public class MetricsEndpoint extends DefaultEndpoint {
 
 	// TODO remove suppress "rawtypes", "unchecked" warnings by refactoring ReporterDefinition
-	// TODO on action = stop, warn if other parameters are non-null
 
 	/**
 	 * 
@@ -146,6 +145,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.metricsComponent.registerName(this.name);
 		// this.metricRegistry = metricsComponent.getMetricRegistry();
 		this.metricRegistry = new MetricRegistry();
+		warnIfTimingStopIsUsedWithOtherParameters(parameters);
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		switch (this.timingAction) {
 			case STOP:
@@ -182,14 +182,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public Expression getCounterDelta() {
 		return this.counterDelta;
-	};
+	}
 
 	/**
 	 * @return the exchangeRateMetric
 	 */
 	public Meter getExchangeRate() {
 		return this.exchangeRate;
-	}
+	};
 
 	/**
 	 * @return the histogram
@@ -580,7 +580,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
 			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
 		} else {
-			LOGGER.warn("unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
+			LOGGER.warn(MARKER, "unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
 		}
 	}
 
@@ -591,6 +591,18 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		for (Entry<TimeUnit, Histogram> entry : this.intervals.entrySet()) {
 			long delta = entry.getKey().convert(deltaInNanos, TimeUnit.NANOSECONDS);
 			entry.getValue().update(delta);
+		}
+	}
+
+	private void warnIfTimingStopIsUsedWithOtherParameters(final Map<String, Object> parameters) {
+		if (parameters.containsKey("timing")) {
+			Object value = parameters.get("timing");
+			if (value instanceof String) {
+				String stringValue = (String) value;
+				if (TimingAction.STOP.name().equalsIgnoreCase(stringValue) && parameters.size() > 1) {
+					LOGGER.warn(MARKER, "found timing={}, additional parameters may be ignored: {}", stringValue, parameters);
+				}
+			}
 		}
 	}
 
