@@ -91,11 +91,12 @@ public class MetricsTest extends CamelTestSupport {
 	}
 
 	@Test
-	// @Ignore
+	@Ignore
 	public void theThirdTest() throws Exception {
 		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
 		jmxReporterDefinition.setDomain("testDomain");
-		jmxReporterDefinition.setFilter("myMetric01.rate");
+		jmxReporterDefinition.setFilter("^(myMetric01.rate|myMetric01.intervalSeconds)$");
+
 		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
 		consoleReporterDefinition.setPeriodDuration(1);
 		consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
