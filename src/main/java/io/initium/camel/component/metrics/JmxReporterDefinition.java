@@ -15,10 +15,11 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 
 /**
@@ -30,36 +31,31 @@ import com.codahale.metrics.MetricRegistry;
 public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefinition> {
 
 	// fields
+	private static final String		DEFAULT_NAME			= JmxReporterDefinition.class.getSimpleName();
 	private static final String		DEFAULT_DOMAIN			= "metrics";
 	private static final TimeUnit	DEFAULT_DURATION_UNIT	= TimeUnit.MILLISECONDS;
 	private static final TimeUnit	DEFAULT_RATE_UNIT		= TimeUnit.SECONDS;
+	private static final String		DEFAULT_FILTER			= null;
 
 	/**
 	 * @return
 	 */
 	public static JmxReporterDefinition getDefaultReporter() {
-		return getDefaultReporter(UUID.randomUUID().toString());
-	}
-
-	/**
-	 * @param name
-	 * @return
-	 */
-	public static JmxReporterDefinition getDefaultReporter(final String name) {
 		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
-		jmxReporterDefinition.setName(name);
+		jmxReporterDefinition.setName(DEFAULT_NAME);
 		jmxReporterDefinition.setDomain(DEFAULT_DOMAIN);
 		jmxReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
 		jmxReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		jmxReporterDefinition.setFilter(DEFAULT_FILTER);
 		return jmxReporterDefinition;
 	}
 
 	// fields
-	private String		name;
-
+	private String		name	= DEFAULT_NAME;
 	private String		domain;
 	private TimeUnit	durationUnit;
 	private TimeUnit	rateUnit;
+	private String		filter;
 
 	@Override
 	public JmxReporterDefinition applyAsOverride(final JmxReporterDefinition override) {
@@ -69,11 +65,13 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 		jmxReporterDefinition.setDomain(this.domain);
 		jmxReporterDefinition.setDurationUnit(this.durationUnit);
 		jmxReporterDefinition.setRateUnit(this.rateUnit);
+		jmxReporterDefinition.setFilter(this.filter);
 		// apply new values
 		jmxReporterDefinition.setNameIfNotNull(override.getName());
 		jmxReporterDefinition.setDomainIfNotNull(override.getDomain());
 		jmxReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
 		jmxReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		jmxReporterDefinition.setFilterIfNotNull(override.getFilter());
 		return jmxReporterDefinition;
 	}
 
@@ -89,10 +87,19 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 				.inDomain(jmxReporterDefinition.getDomain())
 				.convertDurationsTo(jmxReporterDefinition.getDurationUnit())
 				.convertRatesTo(jmxReporterDefinition.getRateUnit())
+				.filter(new MetricFilter(){
+					@Override
+					public boolean matches(final String name, final Metric metric) {
+						if(name==null || JmxReporterDefinition.this.filter==null){
+							return true;
+						}
+						boolean result = name.matches(JmxReporterDefinition.this.filter);
+						return result;
+					}
+				})
 				.build();
 		// @formatter:on
 		return jmxReporter;
-		// TODO
 	}
 
 	/**
@@ -107,6 +114,13 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
+	}
+
+	/**
+	 * @return the filter
+	 */
+	public String getFilter() {
+		return this.filter;
 	}
 
 	@Override
@@ -136,6 +150,24 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
+	}
+
+	/**
+	 * @param filter
+	 *            the filter to set
+	 */
+	public void setFilter(final String filter) {
+		this.filter = filter;
+	}
+
+	/**
+	 * @param filter
+	 *            the filter to set
+	 */
+	public void setFilterIfNotNull(final String filter) {
+		if (filter != null) {
+			setFilter(filter);
+		}
 	}
 
 	@Override

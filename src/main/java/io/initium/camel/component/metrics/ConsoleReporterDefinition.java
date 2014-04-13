@@ -15,7 +15,6 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.ConsoleReporter;
@@ -30,6 +29,7 @@ import com.codahale.metrics.MetricRegistry;
 public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleReporterDefinition> {
 
 	// fields
+	private static final String		DEFAULT_NAME					= ConsoleReporterDefinition.class.getSimpleName();
 	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
 	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
@@ -39,16 +39,8 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	 * @return
 	 */
 	public static ConsoleReporterDefinition getDefaultReporter() {
-		return getDefaultReporter(UUID.randomUUID().toString());
-	}
-
-	/**
-	 * @param name
-	 * @return
-	 */
-	public static ConsoleReporterDefinition getDefaultReporter(final String name) {
 		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
-		consoleReporterDefinition.setName(name);
+		consoleReporterDefinition.setName(DEFAULT_NAME);
 		consoleReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
 		consoleReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
 		consoleReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
@@ -57,7 +49,7 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	}
 
 	// fields
-	private String		name;
+	private String		name	= DEFAULT_NAME;
 	private TimeUnit	durationUnit;
 	private TimeUnit	rateUnit;
 	private Long		periodDuration;

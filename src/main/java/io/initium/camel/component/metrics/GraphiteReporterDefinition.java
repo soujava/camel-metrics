@@ -16,7 +16,6 @@
 package io.initium.camel.component.metrics;
 
 import java.net.InetSocketAddress;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.MetricRegistry;
@@ -32,6 +31,7 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteReporterDefinition> {
 
 	// fields
+	private static final String		DEFAULT_NAME					= GraphiteReporterDefinition.class.getSimpleName();
 	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
 	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
@@ -44,16 +44,8 @@ public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteRe
 	 * @return
 	 */
 	public static GraphiteReporterDefinition getDefaultReporter() {
-		return getDefaultReporter(UUID.randomUUID().toString());
-	}
-
-	/**
-	 * @param name
-	 * @return
-	 */
-	public static GraphiteReporterDefinition getDefaultReporter(final String name) {
 		GraphiteReporterDefinition graphiteReporterDefinition = new GraphiteReporterDefinition();
-		graphiteReporterDefinition.setName(name);
+		graphiteReporterDefinition.setName(DEFAULT_NAME);
 		graphiteReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
 		graphiteReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
 		graphiteReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
@@ -65,7 +57,7 @@ public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteRe
 	}
 
 	// fields
-	private String		name;
+	private String		name	= DEFAULT_NAME;
 	private TimeUnit	durationUnit;
 	private TimeUnit	rateUnit;
 	private Long		periodDuration;

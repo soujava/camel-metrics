@@ -95,16 +95,19 @@ public class MetricsTest extends CamelTestSupport {
 	public void theThirdTest() throws Exception {
 		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
 		jmxReporterDefinition.setDomain("testDomain");
-		jmxReporterDefinition.setName("testName");
-		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
+		jmxReporterDefinition.setFilter("myMetric01.rate");
+		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+		consoleReporterDefinition.setPeriodDuration(1);
+		consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
+		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition, consoleReporterDefinition);
 		this.context.addComponent("metrics", metricsComponent);
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
 				// @formatter:off
 				from("timer://myTestTimer?period=1000")
-					//.to("log://io.initium.metrics?showAll=true&multiline=true")
-					.to("metrics://myMetric01?jmxReporters=[{name:testName,domain:testReplacedDomain}]")
+					//.to("log://io.initium.metrics?showAll=true&multiline=false")
+					.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]")
 					;
 				// @formatter:on
 			}

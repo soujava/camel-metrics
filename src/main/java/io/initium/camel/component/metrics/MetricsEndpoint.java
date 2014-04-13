@@ -16,6 +16,7 @@
 package io.initium.camel.component.metrics;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -38,14 +39,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.Timer;
+import com.codahale.metrics.graphite.GraphiteReporter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -60,8 +64,10 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
  * @version 1.0
  * @since 2014-02-19
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class MetricsEndpoint extends DefaultEndpoint {
 
+	// TODO remove suppress "rawtypes", "unchecked" warnings by refactoring ReporterDefinition
 	// TODO on action = stop, warn if other parameters are non-null
 
 	/**
@@ -76,9 +82,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// logging
 	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
-
-	// constants
-	private static final Gson				GSON					= new Gson();
 
 	// basic fields
 	private final String					name;
@@ -118,6 +121,16 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private long							gaugeCacheDuration		= 10;
 	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
 
+	// for reporters
+	private static final Gson				GSON					= new Gson();
+	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
+	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
+	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
+	private final List<JmxReporter>			jmxReporters			= new ArrayList<JmxReporter>();
+	private final List<ConsoleReporter>		consoleReporters		= new ArrayList<ConsoleReporter>();
+	private final List<GraphiteReporter>	graphiteReporters		= new ArrayList<GraphiteReporter>();
+
 	/**
 	 * @param uri
 	 * @param metricsComponent
@@ -130,8 +143,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		this.metricsComponent = metricsComponent;
 		this.name = name;
-		this.metricsComponent.registerName(this.name, null);
-		this.metricRegistry = metricsComponent.getMetricRegistry();
+		this.metricsComponent.registerName(this.name);
+		// this.metricRegistry = metricsComponent.getMetricRegistry();
+		this.metricRegistry = new MetricRegistry();
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		switch (this.timingAction) {
 			case STOP:
@@ -261,11 +275,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the consoleReporters to set
 	 */
 	public void setConsoleReporters(final String consoleReporters) {
-		Type consoleReportersType = new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
-		List<ConsoleReporterDefinition> consoleReporterDefinitions = GSON.fromJson(consoleReporters, consoleReportersType);
-		// TODO check for null defn here (later)
+		List<ConsoleReporterDefinition> consoleReporterDefinitions = GSON.fromJson(consoleReporters, CONSOLE_REPORTERS_TYPE);
 		for (ConsoleReporterDefinition consoleReporterDefinition : consoleReporterDefinitions) {
-			this.metricsComponent.addReporterDefinition(this.name, consoleReporterDefinition);
+			this.reporterDefinitions.add(consoleReporterDefinition);
 		}
 	}
 
@@ -338,11 +350,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the graphiteReporters to set
 	 */
 	public void setGraphiteReporters(final String graphiteReporters) {
-		Type graphiteReportersType = new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
-		List<GraphiteReporterDefinition> graphiteReporterDefinitions = GSON.fromJson(graphiteReporters, graphiteReportersType);
-		// TODO check for null defn here (later)
+		List<GraphiteReporterDefinition> graphiteReporterDefinitions = GSON.fromJson(graphiteReporters, GRAPHITE_REPORTERS_TYPE);
 		for (GraphiteReporterDefinition graphiteReporterDefinition : graphiteReporterDefinitions) {
-			this.metricsComponent.addReporterDefinition(this.name, graphiteReporterDefinition);
+			this.reporterDefinitions.add(graphiteReporterDefinition);
 		}
 	}
 
@@ -383,11 +393,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the jmxReporters to set
 	 */
 	public void setJmxReporters(final String jmxReporters) {
-		Type jmxReportersType = new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
-		List<JmxReporterDefinition> jmxReporterDefinitions = GSON.fromJson(jmxReporters, jmxReportersType);
-		// TODO check for null defn here (later)
+		List<JmxReporterDefinition> jmxReporterDefinitions = GSON.fromJson(jmxReporters, JMX_REPORTERS_TYPE);
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
-			this.metricsComponent.addReporterDefinition(this.name, jmxReporterDefinition);
+			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
 	}
 
@@ -547,6 +555,36 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param reporterDefinition
+	 */
+	private void registerAndStart(final ReporterDefinition reporterDefinition) {
+		if (reporterDefinition instanceof JmxReporterDefinition) {
+			JmxReporterDefinition jmxReporterDefinition = ((JmxReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
+			LOGGER.info(MARKER, "adding JmxReporterDefinition: {}", jmxReporterDefinition);
+			JmxReporter jmxReporter = jmxReporterDefinition.buildReporter(this.metricRegistry);
+			this.jmxReporters.add(jmxReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", jmxReporter);
+			jmxReporter.start();
+		} else if (reporterDefinition instanceof ConsoleReporterDefinition) {
+			ConsoleReporterDefinition consoleReporterDefinition = ((ConsoleReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
+			LOGGER.info(MARKER, "adding ConsoleReporterDefinition: {}", consoleReporterDefinition);
+			ConsoleReporter consoleReporter = consoleReporterDefinition.buildReporter(this.metricRegistry);
+			this.consoleReporters.add(consoleReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", consoleReporter);
+			consoleReporter.start(consoleReporterDefinition.getPeriodDuration(), consoleReporterDefinition.getPeriodDurationUnit());
+		} else if (reporterDefinition instanceof GraphiteReporterDefinition) {
+			GraphiteReporterDefinition graphiteReporterDefinition = ((GraphiteReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
+			LOGGER.info(MARKER, "adding GraphiteReporterDefinition: {}", graphiteReporterDefinition);
+			GraphiteReporter graphiteReporter = graphiteReporterDefinition.buildReporter(this.metricRegistry);
+			this.graphiteReporters.add(graphiteReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
+			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
+		} else {
+			LOGGER.warn("unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
+		}
+	}
+
+	/**
 	 * @param deltaInNanos
 	 */
 	private void updateAllIntervals(final long deltaInNanos) {
@@ -570,14 +608,44 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	@Override
 	protected void doStart() throws Exception {
-		super.doStart();
 		LOGGER.debug(MARKER, "doStart()");
+
+		Map<String, ReporterDefinition> componentReporterDefinitions = this.metricsComponent.getReporterDefinitions();
+		Map<String, ReporterDefinition> leftoverReporterDefinitions = new HashMap<String, ReporterDefinition>();
+		leftoverReporterDefinitions.putAll(componentReporterDefinitions);
+
+		// check component definitions for defaults
+		for (ReporterDefinition reporterDefinition : this.reporterDefinitions) {
+			String reporterDefinitionName = reporterDefinition.getName();
+			ReporterDefinition componentReporterDefinition = leftoverReporterDefinitions.get(reporterDefinitionName);
+			if (componentReporterDefinition != null) {
+				ReporterDefinition combinedReporterDefinition = componentReporterDefinition;
+				combinedReporterDefinition = componentReporterDefinition.applyAsOverride(reporterDefinition);
+				registerAndStart(combinedReporterDefinition);
+				leftoverReporterDefinitions.remove(reporterDefinitionName);
+			} else {
+				registerAndStart(reporterDefinition);
+			}
+		}
+		// start the remaining definitions
+		for (Entry<String, ReporterDefinition> leftoverReporterDefinitionEntry : leftoverReporterDefinitions.entrySet()) {
+			ReporterDefinition reporterDefinition = leftoverReporterDefinitionEntry.getValue();
+			registerAndStart(reporterDefinition);
+		}
 	}
 
 	@Override
 	protected void doStop() throws Exception {
-		super.doStop();
 		LOGGER.debug(MARKER, "doStop()");
+		for (JmxReporter jmxReporter : this.jmxReporters) {
+			jmxReporter.stop();
+		}
+		for (ConsoleReporter consoleReporter : this.consoleReporters) {
+			consoleReporter.stop();
+		}
+		for (GraphiteReporter graphiteReporter : this.graphiteReporters) {
+			graphiteReporter.stop();
+		}
 	}
 
 	@Override

@@ -18,7 +18,6 @@ package io.initium.camel.component.metrics;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.camel.Endpoint;
@@ -29,13 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.graphite.GraphiteReporter;
-
-import io.initium.camel.component.metrics.LoggingMetricRegistryListener.Level;
-
 // TODO implement filters
 // TODO verify LOGGERs all use MARKERS
 
@@ -45,30 +37,23 @@ import io.initium.camel.component.metrics.LoggingMetricRegistryListener.Level;
  * @version 1.0
  * @since 2014-02-19
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings("rawtypes")
 public class MetricsComponent extends UriEndpointComponent {
 
-	// TODO remove suppress warnings by refactoring ReporterDefinition
+	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
 
 	// logging
-	private static final String									SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger									LOGGER							= LoggerFactory.getLogger(SELF);
+	private static final String						SELF				= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger						LOGGER				= LoggerFactory.getLogger(SELF);
 
 	// constants
-	public static final Marker									MARKER							= MarkerFactory.getMarker("METRICS");
-	public static final String									DEFAULT_JMX_DOMAIN				= "metrics";
-	public static final String									TIMING_MAP_NAME					= DEFAULT_JMX_DOMAIN + ".TimingMap";
+	public static final Marker						MARKER				= MarkerFactory.getMarker("METRICS");
+	public static final String						DEFAULT_JMX_DOMAIN	= "metrics";
+	public static final String						TIMING_MAP_NAME		= DEFAULT_JMX_DOMAIN + ".TimingMap";
 
 	// fields
-	private final MetricRegistry								metricRegistry;
-
-	// reporters
-	private final Map<String, ReporterDefinition>				componentReporterDefinitions	= new HashMap<String, ReporterDefinition>();
-	// <String, Map<String, ReporterDefinition>> = <MetricName, <ReporterDefinitionName, ReporterDefinition>
-	private final Map<String, Map<String, ReporterDefinition>>	metricReporterDefinitions		= new HashMap<String, Map<String, ReporterDefinition>>();
-	private final Set<JmxReporter>								jmxReporters					= new HashSet<JmxReporter>();
-	private final Set<ConsoleReporter>							consoleReporters				= new HashSet<ConsoleReporter>();
-	private final Set<GraphiteReporter>							graphiteReporters				= new HashSet<GraphiteReporter>();
+	private final Map<String, ReporterDefinition>	reporterDefinitions	= new HashMap<String, ReporterDefinition>();
+	private final Set<String>						metricNames			= new HashSet<String>();
 
 	/**
 	 * 
@@ -76,74 +61,32 @@ public class MetricsComponent extends UriEndpointComponent {
 	public MetricsComponent(final ReporterDefinition... newReporterDefinitions) {
 		super(MetricsEndpoint.class);
 		LOGGER.info(MARKER, "MetricsComponent({})", (Object[]) newReporterDefinitions);
-		this.metricRegistry = new MetricRegistry();
-		this.metricRegistry.addListener(new LoggingMetricRegistryListener(LOGGER, MARKER, Level.INFO));
+		// this.metricRegistry = new MetricRegistry();
+		// this.metricRegistry.addListener(new LoggingMetricRegistryListener(LOGGER, MARKER, Level.INFO));
 		for (ReporterDefinition reporterDefinition : newReporterDefinitions) {
 			String reporterDefinitionName = reporterDefinition.getName();
-			if (this.componentReporterDefinitions.containsKey(reporterDefinitionName)) {
+			if (reporterDefinitionName != null && this.reporterDefinitions.containsKey(reporterDefinitionName)) {
 				throw new RuntimeCamelException("duplicate ReporterDefinition encountered: " + reporterDefinitionName);
 			}
-			this.componentReporterDefinitions.put(reporterDefinitionName, reporterDefinition);
+			this.reporterDefinitions.put(reporterDefinitionName, reporterDefinition);
 		}
-	}
-
-	public void addReporterDefinition(final String metricName, final ReporterDefinition reporterDefinition) {
-		LOGGER.info("addReporterDefinition: {}={}", metricName, reporterDefinition);
-		Map<String, ReporterDefinition> specificMetricReporterDefinitions = this.metricReporterDefinitions.get(metricName);
-		// TODO consider moving this code to some place more appropriate
-		if (specificMetricReporterDefinitions == null) {
-			specificMetricReporterDefinitions = new HashMap<String, ReporterDefinition>();
-			this.metricReporterDefinitions.put(metricName, specificMetricReporterDefinitions);
-		}
-		// TODO check for duplicate names before putting them in map
-		specificMetricReporterDefinitions.put(reporterDefinition.getName(), reporterDefinition);
 	}
 
 	/**
-	 * @return
+	 * @return the reporterDefinitions
 	 */
-	public MetricRegistry getMetricRegistry() {
-		return this.metricRegistry;
+	public Map<String, ReporterDefinition> getReporterDefinitions() {
+		return this.reporterDefinitions;
 	}
 
 	/**
 	 * @param name
 	 */
-	public synchronized void registerName(final String name, final Map<String, ReporterDefinition> reporterDefinitions) {
-		if (this.metricReporterDefinitions.containsKey(name)) {
+	public synchronized void registerName(final String name) {
+		if (this.metricNames.contains(name)) {
 			throw new RuntimeCamelException("duplicate metric name found: " + name);
 		}
-		this.metricReporterDefinitions.put(name, reporterDefinitions);
-	}
-
-	/**
-	 * @param reporterDefinition
-	 */
-	private void registerAndStart(final ReporterDefinition reporterDefinition) {
-		if (reporterDefinition instanceof JmxReporterDefinition) {
-			JmxReporterDefinition jmxReporterDefinition = ((JmxReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding JmxReporterDefinition: {}", jmxReporterDefinition);
-			JmxReporter jmxReporter = jmxReporterDefinition.buildReporter(this.metricRegistry);
-			this.jmxReporters.add(jmxReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", jmxReporter);
-			jmxReporter.start();
-		} else if (reporterDefinition instanceof ConsoleReporterDefinition) {
-			ConsoleReporterDefinition consoleReporterDefinition = ((ConsoleReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding ConsoleReporterDefinition: {}", consoleReporterDefinition);
-			ConsoleReporter consoleReporter = consoleReporterDefinition.buildReporter(this.metricRegistry);
-			this.consoleReporters.add(consoleReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", consoleReporter);
-			consoleReporter.start(consoleReporterDefinition.getPeriodDuration(), consoleReporterDefinition.getPeriodDurationUnit());
-		} else if (reporterDefinition instanceof GraphiteReporterDefinition) {
-			GraphiteReporterDefinition graphiteReporterDefinition = ((GraphiteReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding GraphiteReporterDefinition: {}", graphiteReporterDefinition);
-			GraphiteReporter graphiteReporter = graphiteReporterDefinition.buildReporter(this.metricRegistry);
-			this.graphiteReporters.add(graphiteReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
-			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
-		} else {
-			LOGGER.warn("unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
-		}
+		this.metricNames.add(name);
 	}
 
 	@Override
@@ -170,48 +113,12 @@ public class MetricsComponent extends UriEndpointComponent {
 	protected void doStart() throws Exception {
 		super.doStart();
 		LOGGER.info(MARKER, "doStart()");
-		// calculate merged definitions
-		Map<String, ReporterDefinition> leftoverReporterDefinitions = new HashMap<String, ReporterDefinition>();
-		leftoverReporterDefinitions.putAll(this.componentReporterDefinitions);
-		// merge or add each metric level definition then start it
-		for (Entry<String, Map<String, ReporterDefinition>> metricNamedReporterDefinitionsEntry : this.metricReporterDefinitions.entrySet()) {
-			// String metricName = metricNamedReporterDefinitionsEntry.getKey();
-			Map<String, ReporterDefinition> metricReporterDefinitions = metricNamedReporterDefinitionsEntry.getValue();
-			for (Entry<String, ReporterDefinition> metricReporterDefinitionEntry : metricReporterDefinitions.entrySet()) {
-				String reporterDefinitionName = metricReporterDefinitionEntry.getKey();
-				ReporterDefinition metricReporterDefinition = metricReporterDefinitionEntry.getValue();
-				ReporterDefinition combinedReporterDefinition = metricReporterDefinition;
-				ReporterDefinition componentReporterDefinition = this.componentReporterDefinitions.get(reporterDefinitionName);
-				if (componentReporterDefinition != null) {
-					// TODO add check to verify definitions are same type
-					combinedReporterDefinition = componentReporterDefinition.applyAsOverride(metricReporterDefinition);
-				}
-				registerAndStart(combinedReporterDefinition);
-				// mark definition as finished so we can do delta at end of logic
-				leftoverReporterDefinitions.remove(reporterDefinitionName);
-			}
-		}
-		// start the remaining definitions
-		for (Entry<String, ReporterDefinition> leftoverReporterDefinitionEntry : leftoverReporterDefinitions.entrySet()) {
-			// String reporterDefinitionName = leftoverReporterDefinitionEntry.getKey();
-			ReporterDefinition reporterDefinition = leftoverReporterDefinitionEntry.getValue();
-			registerAndStart(reporterDefinition);
-		}
 	}
 
 	@Override
 	protected void doStop() throws Exception {
 		super.doStop();
 		LOGGER.debug(MARKER, "doStop()");
-		for (JmxReporter jmxReporter : this.jmxReporters) {
-			jmxReporter.stop();
-		}
-		for (ConsoleReporter consoleReporter : this.consoleReporters) {
-			consoleReporter.stop();
-		}
-		for (GraphiteReporter graphiteReporter : this.graphiteReporters) {
-			graphiteReporter.stop();
-		}
 	}
 
 	@Override
