@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
@@ -48,11 +49,18 @@ import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reservoir;
+import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.initium.camel.component.metrics.reporters.ConsoleReporterDefinition;
+import io.initium.camel.component.metrics.reporters.CsvReporterDefinition;
+import io.initium.camel.component.metrics.reporters.GraphiteReporterDefinition;
+import io.initium.camel.component.metrics.reporters.JmxReporterDefinition;
+import io.initium.camel.component.metrics.reporters.ReporterDefinition;
+import io.initium.camel.component.metrics.reporters.Slf4jReporterDefinition;
 import io.initium.common.util.OptionHelper;
 import io.initium.common.util.StringUtils;
 
@@ -125,10 +133,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
 	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
 	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+	private static final Type				SLF4J_REPORTERS_TYPE	= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
+	private static final Type				CSV_REPORTERS_TYPE		= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
 	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
 	private final List<JmxReporter>			jmxReporters			= new ArrayList<JmxReporter>();
 	private final List<ConsoleReporter>		consoleReporters		= new ArrayList<ConsoleReporter>();
 	private final List<GraphiteReporter>	graphiteReporters		= new ArrayList<GraphiteReporter>();
+	private final List<Slf4jReporter>		slf4jReporters			= new ArrayList<Slf4jReporter>();
+	private final List<CsvReporter>			csvReporters			= new ArrayList<CsvReporter>();
 
 	/**
 	 * @param uri
@@ -306,6 +318,17 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param csvReporters
+	 *            the csvReporters to set
+	 */
+	public void setCsvReporters(final String csvReporters) {
+		List<CsvReporterDefinition> csvReporterDefinitions = GSON.fromJson(csvReporters, CSV_REPORTERS_TYPE);
+		for (CsvReporterDefinition csvReporterDefinition : csvReporterDefinitions) {
+			this.reporterDefinitions.add(csvReporterDefinition);
+		}
+	}
+
+	/**
 	 * @param internalTimerEnabled
 	 *            the internalTimerEnabled to set
 	 */
@@ -404,6 +427,17 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public void setLastExchange(final Exchange lastExchange) {
 		this.lastExchange = lastExchange;
+	}
+
+	/**
+	 * @param slf4jReporters
+	 *            the slf4jReporters to set
+	 */
+	public void setSlf4jReporters(final String slf4jReporters) {
+		List<Slf4jReporterDefinition> slf4jReporterDefinitions = GSON.fromJson(slf4jReporters, SLF4J_REPORTERS_TYPE);
+		for (Slf4jReporterDefinition slf4jReporterDefinition : slf4jReporterDefinitions) {
+			this.reporterDefinitions.add(slf4jReporterDefinition);
+		}
 	}
 
 	/**
@@ -579,6 +613,20 @@ public class MetricsEndpoint extends DefaultEndpoint {
 			this.graphiteReporters.add(graphiteReporter);
 			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
 			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
+		} else if (reporterDefinition instanceof Slf4jReporterDefinition) {
+			Slf4jReporterDefinition slf4jReporterDefinition = ((Slf4jReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
+			LOGGER.info(MARKER, "adding Slf4jReporterDefinition: {}", slf4jReporterDefinition);
+			Slf4jReporter slf4jReporter = slf4jReporterDefinition.buildReporter(this.metricRegistry);
+			this.slf4jReporters.add(slf4jReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", slf4jReporter);
+			slf4jReporter.start(slf4jReporterDefinition.getPeriodDuration(), slf4jReporterDefinition.getPeriodDurationUnit());
+		} else if (reporterDefinition instanceof CsvReporterDefinition) {
+			CsvReporterDefinition csvReporterDefinition = ((CsvReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
+			LOGGER.info(MARKER, "adding CsvjReporterDefinition: {}", csvReporterDefinition);
+			CsvReporter csvReporter = csvReporterDefinition.buildReporter(this.metricRegistry);
+			this.csvReporters.add(csvReporter);
+			LOGGER.info(MARKER, "starting reporter: {}", csvReporter);
+			csvReporter.start(csvReporterDefinition.getPeriodDuration(), csvReporterDefinition.getPeriodDurationUnit());
 		} else {
 			LOGGER.warn(MARKER, "unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
 		}
@@ -657,6 +705,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		}
 		for (GraphiteReporter graphiteReporter : this.graphiteReporters) {
 			graphiteReporter.stop();
+		}
+		for (Slf4jReporter slf4jReporter : this.slf4jReporters) {
+			slf4jReporter.stop();
+		}
+		for (CsvReporter csvReporter : this.csvReporters) {
+			csvReporter.stop();
 		}
 	}
 

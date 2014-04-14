@@ -25,6 +25,9 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import io.initium.camel.component.metrics.reporters.ConsoleReporterDefinition;
+import io.initium.camel.component.metrics.reporters.JmxReporterDefinition;
+
 public class MetricsTest extends CamelTestSupport {
 
 	private static Random	random	= new Random();

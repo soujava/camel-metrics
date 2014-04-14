@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import io.initium.camel.component.metrics.reporters.ReporterDefinition;
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -37,7 +39,9 @@ import org.slf4j.MarkerFactory;
 @SuppressWarnings("rawtypes")
 public class MetricsComponent extends UriEndpointComponent {
 
+	// TODO regenerate toStrings of Definitions
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
+	// TODO support java-ish ways of setting fields for reporters, coordinate with overrides
 
 	// logging
 	private static final String						SELF				= Thread.currentThread().getStackTrace()[1].getClassName();

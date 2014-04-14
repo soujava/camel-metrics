@@ -13,7 +13,7 @@
  * License.
  */
 // @formatter:on
-package io.initium.camel.component.metrics;
+package io.initium.camel.component.metrics.reporters;
 
 import java.util.concurrent.TimeUnit;
 

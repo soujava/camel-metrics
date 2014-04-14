@@ -13,14 +13,17 @@
  * License.
  */
 // @formatter:on
-package io.initium.camel.component.metrics;
+package io.initium.camel.component.metrics.reporters;
 
 import java.util.concurrent.TimeUnit;
 
-import com.codahale.metrics.ConsoleReporter;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
+
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -28,28 +31,32 @@ import com.codahale.metrics.MetricRegistry;
  * @version 1.1
  * @since 2014-02-19
  */
-public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleReporterDefinition> {
+public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporterDefinition> {
 
 	// fields
-	private static final String		DEFAULT_NAME					= ConsoleReporterDefinition.class.getSimpleName();
+	private static final String		DEFAULT_NAME					= Slf4jReporterDefinition.class.getSimpleName();
 	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
 	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
 	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT	= TimeUnit.MINUTES;
 	private static final String		DEFAULT_FILTER					= null;
+	private static final String		DEFAULT_LOGGER_NAME				= "metrics";
+	private static final String		DEFAULT_MARKER_NAME				= "metrics";
 
 	/**
 	 * @return
 	 */
-	public static ConsoleReporterDefinition getDefaultReporter() {
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
-		consoleReporterDefinition.setName(DEFAULT_NAME);
-		consoleReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		consoleReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		consoleReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
-		consoleReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
-		consoleReporterDefinition.setFilter(DEFAULT_FILTER);
-		return consoleReporterDefinition;
+	public static Slf4jReporterDefinition getDefaultReporter() {
+		Slf4jReporterDefinition slf4jReporterDefinition = new Slf4jReporterDefinition();
+		slf4jReporterDefinition.setName(DEFAULT_NAME);
+		slf4jReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		slf4jReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		slf4jReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
+		slf4jReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
+		slf4jReporterDefinition.setFilter(DEFAULT_FILTER);
+		slf4jReporterDefinition.setLoggerName(DEFAULT_LOGGER_NAME);
+		slf4jReporterDefinition.setMarkerName(DEFAULT_MARKER_NAME);
+		return slf4jReporterDefinition;
 	}
 
 	// fields
@@ -59,51 +66,59 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	private Long		periodDuration;
 	private TimeUnit	periodDurationUnit;
 	private String		filter;
+	private String		loggerName;
+	private String		markerName;
 
 	@Override
-	public ConsoleReporterDefinition applyAsOverride(final ConsoleReporterDefinition override) {
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+	public Slf4jReporterDefinition applyAsOverride(final Slf4jReporterDefinition override) {
+		Slf4jReporterDefinition slf4jReporterDefinition = new Slf4jReporterDefinition();
 		// get current values
-		consoleReporterDefinition.setName(this.name);
-		consoleReporterDefinition.setDurationUnit(this.durationUnit);
-		consoleReporterDefinition.setRateUnit(this.rateUnit);
-		consoleReporterDefinition.setPeriodDuration(this.periodDuration);
-		consoleReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
-		consoleReporterDefinition.setFilter(this.filter);
+		slf4jReporterDefinition.setName(this.name);
+		slf4jReporterDefinition.setDurationUnit(this.durationUnit);
+		slf4jReporterDefinition.setRateUnit(this.rateUnit);
+		slf4jReporterDefinition.setPeriodDuration(this.periodDuration);
+		slf4jReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
+		slf4jReporterDefinition.setFilter(this.filter);
+		slf4jReporterDefinition.setLoggerName(this.loggerName);
+		slf4jReporterDefinition.setMarkerName(this.markerName);
 		// apply new values
-		consoleReporterDefinition.setNameIfNotNull(override.getName());
-		consoleReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		consoleReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
-		consoleReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
-		consoleReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
-		consoleReporterDefinition.setFilterIfNotNull(override.getFilter());
-		return consoleReporterDefinition;
+		slf4jReporterDefinition.setNameIfNotNull(override.getName());
+		slf4jReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		slf4jReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		slf4jReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
+		slf4jReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
+		slf4jReporterDefinition.setFilterIfNotNull(override.getFilter());
+		slf4jReporterDefinition.setLoggerNameIfNotNull(override.getLoggerName());
+		slf4jReporterDefinition.setMarkerNameIfNotNull(override.getMarkerName());
+		return slf4jReporterDefinition;
 	}
 
 	/**
 	 * @param metricRegistry
 	 * @return
 	 */
-	public ConsoleReporter buildReporter(final MetricRegistry metricRegistry) {
-		ConsoleReporterDefinition consoleReporterDefinition = getReporterDefinitionWithDefaults();
+	public Slf4jReporter buildReporter(final MetricRegistry metricRegistry) {
+		Slf4jReporterDefinition slf4jReporterDefinition = getReporterDefinitionWithDefaults();
 		// @formatter:off
-		ConsoleReporter consoleReporter = ConsoleReporter
+		Slf4jReporter slf4jReporter = Slf4jReporter
 				.forRegistry(metricRegistry)
-				.convertDurationsTo(consoleReporterDefinition.getDurationUnit())
-				.convertRatesTo(consoleReporterDefinition.getRateUnit())
+				.convertDurationsTo(slf4jReporterDefinition.getDurationUnit())
+				.convertRatesTo(slf4jReporterDefinition.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
-						if(name==null || ConsoleReporterDefinition.this.filter==null){
+						if(name==null || Slf4jReporterDefinition.this.filter==null){
 							return true;
 						}
-						boolean result = name.matches(ConsoleReporterDefinition.this.filter);
+						boolean result = name.matches(Slf4jReporterDefinition.this.filter);
 						return result;
 					}
 				})
+				.outputTo(LoggerFactory.getLogger(slf4jReporterDefinition.getLoggerName()))
+				.markWith(MarkerFactory.getMarker(slf4jReporterDefinition.getMarkerName()))
 				.build();
 		// @formatter:on
-		return consoleReporter;
+		return slf4jReporter;
 	}
 
 	/**
@@ -118,6 +133,20 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	 */
 	public String getFilter() {
 		return this.filter;
+	}
+
+	/**
+	 * @return the loggerName
+	 */
+	public String getLoggerName() {
+		return this.loggerName;
+	}
+
+	/**
+	 * @return the markerName
+	 */
+	public String getMarkerName() {
+		return this.markerName;
 	}
 
 	@Override
@@ -147,7 +176,7 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	}
 
 	@Override
-	public ConsoleReporterDefinition getReporterDefinitionWithDefaults() {
+	public Slf4jReporterDefinition getReporterDefinitionWithDefaults() {
 		return getDefaultReporter().applyAsOverride(this);
 	}
 
@@ -172,6 +201,22 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 		if (filter != null) {
 			setFilter(filter);
 		}
+	}
+
+	/**
+	 * @param loggerName
+	 *            the loggerName to set
+	 */
+	public void setLoggerName(final String loggerName) {
+		this.loggerName = loggerName;
+	}
+
+	/**
+	 * @param markerName
+	 *            the markerName to set
+	 */
+	public void setMarkerName(final String markerName) {
+		this.markerName = markerName;
 	}
 
 	@Override
@@ -223,6 +268,24 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 	}
 
 	/**
+	 * @param loggerName
+	 */
+	private void setLoggerNameIfNotNull(final String loggerName) {
+		if (loggerName != null) {
+			setLoggerName(loggerName);
+		}
+	}
+
+	/**
+	 * @param markerName
+	 */
+	private void setMarkerNameIfNotNull(final String markerName) {
+		if (markerName != null) {
+			setMarkerName(markerName);
+		}
+	}
+
+	/**
 	 * @param name
 	 */
 	private void setNameIfNotNull(final String name) {
@@ -231,6 +294,9 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 		}
 	}
 
+	/**
+	 * @param periodDuration
+	 */
 	private void setPeriodDurationIfNotNull(final Long periodDuration) {
 		if (periodDuration != null) {
 			setPeriodDuration(periodDuration);
