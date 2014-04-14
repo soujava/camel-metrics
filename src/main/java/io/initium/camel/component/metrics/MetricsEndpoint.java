@@ -55,6 +55,7 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener;
 import io.initium.camel.component.metrics.reporters.ConsoleReporterDefinition;
 import io.initium.camel.component.metrics.reporters.CsvReporterDefinition;
 import io.initium.camel.component.metrics.reporters.GraphiteReporterDefinition;

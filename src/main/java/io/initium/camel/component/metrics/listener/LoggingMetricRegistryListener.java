@@ -13,7 +13,7 @@
  * License.
  */
 // @formatter:on
-package io.initium.camel.component.metrics;
+package io.initium.camel.component.metrics.listener;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +25,8 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistryListener;
 import com.codahale.metrics.Timer;
+
+import io.initium.camel.component.metrics.MetricsComponent;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
