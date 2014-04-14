@@ -157,7 +157,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		this.metricsComponent = metricsComponent;
 		this.name = name;
-		this.metricsComponent.registerName(this.name);
 		// this.metricRegistry = metricsComponent.getMetricRegistry();
 		this.metricRegistry = new MetricRegistry();
 		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
@@ -169,6 +168,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 				LOGGER.debug(MARKER, "skipping initialization, timingAction={}", this.timingAction);
 				break;
 			default:
+				this.metricsComponent.registerName(this.name);
 				initializeMetrics();
 				break;
 		}

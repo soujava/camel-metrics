@@ -40,6 +40,7 @@ import io.initium.camel.component.metrics.reporters.ReporterDefinition;
 public class MetricsComponent extends UriEndpointComponent {
 
 	// TODO regenerate toStrings of Definitions
+	// TODO error out on some required fields for reporters
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
 	// TODO support java-ish ways of setting fields for reporters, coordinate with overrides
 
@@ -57,7 +58,7 @@ public class MetricsComponent extends UriEndpointComponent {
 	private final Set<String>						metricNames			= new HashSet<String>();
 
 	/**
-	 * 
+	 * @param newReporterDefinitions
 	 */
 	public MetricsComponent(final ReporterDefinition... newReporterDefinitions) {
 		super(MetricsEndpoint.class);
