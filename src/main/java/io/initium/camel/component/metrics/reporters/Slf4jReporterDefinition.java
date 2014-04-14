@@ -255,7 +255,8 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 
 	@Override
 	public String toString() {
-		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + "]";
+		return "Slf4jReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter=" + this.filter
+				+ ", loggerName=" + this.loggerName + ", markerName=" + this.markerName + "]";
 	}
 
 	/**

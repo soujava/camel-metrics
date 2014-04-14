@@ -210,7 +210,8 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 
 	@Override
 	public String toString() {
-		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + "]";
+		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter="
+				+ this.filter + "]";
 	}
 
 	/**

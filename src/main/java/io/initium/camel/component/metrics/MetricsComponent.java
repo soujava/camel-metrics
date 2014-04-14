@@ -39,10 +39,9 @@ import io.initium.camel.component.metrics.reporters.ReporterDefinition;
 @SuppressWarnings("rawtypes")
 public class MetricsComponent extends UriEndpointComponent {
 
-	// TODO regenerate toStrings of Definitions
 	// TODO error out on some required fields for reporters
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
-	// TODO support java-ish ways of setting fields for reporters, coordinate with overrides
+	// TODO support ReporterDefinitions that support setting Objects rather than names of objects
 
 	// logging
 	private static final String						SELF				= Thread.currentThread().getStackTrace()[1].getClassName();

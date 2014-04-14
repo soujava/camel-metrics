@@ -229,6 +229,12 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 		this.rateUnit = rateUnit;
 	}
 
+	@Override
+	public String toString() {
+		return "CsvReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter=" + this.filter
+				+ ", directory=" + this.directory + "]";
+	}
+
 	/**
 	 * @param directory
 	 */

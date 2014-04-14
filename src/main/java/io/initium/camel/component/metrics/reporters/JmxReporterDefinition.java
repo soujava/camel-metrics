@@ -182,7 +182,7 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 
 	@Override
 	public String toString() {
-		return "JmxReporterDefinition [name=" + this.name + ", domain=" + this.domain + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + "]";
+		return "JmxReporterDefinition [name=" + this.name + ", domain=" + this.domain + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", filter=" + this.filter + "]";
 	}
 
 	/**

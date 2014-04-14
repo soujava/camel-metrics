@@ -274,7 +274,7 @@ public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteRe
 	@Override
 	public String toString() {
 		return "GraphiteReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", host=" + this.host
-				+ ", port=" + this.port + ", prefix=" + this.prefix + "]";
+				+ ", port=" + this.port + ", prefix=" + this.prefix + ", filter=" + this.filter + "]";
 	}
 
 	/**

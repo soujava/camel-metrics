@@ -98,13 +98,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	// for default metrics
 	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
-	// TODO set last exchange in doStart
 	private long							lastExchangeTime				= System.nanoTime();
 	private Meter							exchangeRate					= null;
 	private Timer							internalTimer					= null;
 	private Exchange						lastExchange					= null;
 	private boolean							isInternalTimerEnabled			= false;
-	// private Reservoir intervalReservoir = new ExponentiallyDecayingReservoir();
+	private boolean							haveProcessedAtLeastOneExchange	= false;
 
 	// for timing metrics
 	private Timer							timer							= null;
@@ -143,7 +142,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private final List<GraphiteReporter>	graphiteReporters				= new ArrayList<GraphiteReporter>();
 	private final List<Slf4jReporter>		slf4jReporters					= new ArrayList<Slf4jReporter>();
 	private final List<CsvReporter>			csvReporters					= new ArrayList<CsvReporter>();
-	private boolean							haveProcessedAtLeastOneExchange	= false;
 
 	/**
 	 * @param uri
@@ -157,7 +155,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		this.metricsComponent = metricsComponent;
 		this.name = name;
-		// this.metricRegistry = metricsComponent.getMetricRegistry();
 		this.metricRegistry = new MetricRegistry();
 		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
 		this.metricRegistry.addListener(listener);
@@ -412,15 +409,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.histogramValue = createFileLanguageExpression(histogramValue);
 	}
 
-	// /**
-	// * @param intervalReservoirName
-	// * the intervalReservoir to set
-	// */
-	// public void setIntervalReservoir(final String intervalReservoirName) {
-	// this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName,
-	// Reservoir.class);
-	// }
-
 	/**
 	 * @param jmxReporters
 	 *            the jmxReporters to set
@@ -657,6 +645,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		}
 	}
 
+	/**
+	 * @param parameters
+	 */
 	private void warnIfTimingStopIsUsedWithOtherParameters(final Map<String, Object> parameters) {
 		if (parameters.containsKey("timing")) {
 			Object value = parameters.get("timing");
