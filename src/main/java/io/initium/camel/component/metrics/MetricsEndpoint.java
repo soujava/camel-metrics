@@ -98,6 +98,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 
 	// for default metrics
 	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
+	// TODO set last exchange in doStart
 	private long							lastExchangeTime				= System.nanoTime();
 	private Meter							exchangeRate					= null;
 	private Timer							internalTimer					= null;
@@ -284,9 +285,9 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.lastExchangeTime = System.nanoTime();
 		this.exchangeRate.mark();
 		if (this.haveProcessedAtLeastOneExchange) {
-			this.haveProcessedAtLeastOneExchange = true;
 			updateAllIntervals(deltaInNanos);
 		}
+		this.haveProcessedAtLeastOneExchange = true;
 	}
 
 	/**
