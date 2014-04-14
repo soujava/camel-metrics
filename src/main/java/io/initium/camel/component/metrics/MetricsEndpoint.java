@@ -285,6 +285,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.lastExchangeTime = System.nanoTime();
 		this.exchangeRate.mark();
 		if (this.haveProcessedAtLeastOneExchange) {
+			LOGGER.info("deltaInNanos: {}", deltaInNanos);
 			updateAllIntervals(deltaInNanos);
 		}
 		this.haveProcessedAtLeastOneExchange = true;
@@ -646,6 +647,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private void updateAllIntervals(final long deltaInNanos) {
 		for (Entry<TimeUnit, Histogram> entry : this.intervals.entrySet()) {
 			long delta = entry.getKey().convert(deltaInNanos, TimeUnit.NANOSECONDS);
+			LOGGER.info("delta in {}: {}", entry.getKey(), delta);
 			entry.getValue().update(delta);
 		}
 	}
