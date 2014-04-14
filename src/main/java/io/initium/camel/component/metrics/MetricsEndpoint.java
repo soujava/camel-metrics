@@ -104,7 +104,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private Timer							internalTimer					= null;
 	private Exchange						lastExchange					= null;
 	private boolean							isInternalTimerEnabled			= false;
-	private Reservoir						intervalReservoir				= new ExponentiallyDecayingReservoir();
+	// private Reservoir intervalReservoir = new ExponentiallyDecayingReservoir();
 
 	// for timing metrics
 	private Timer							timer							= null;
@@ -412,13 +412,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.histogramValue = createFileLanguageExpression(histogramValue);
 	}
 
-	/**
-	 * @param intervalReservoirName
-	 *            the intervalReservoir to set
-	 */
-	public void setIntervalReservoir(final String intervalReservoirName) {
-		this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName, Reservoir.class);
-	}
+	// /**
+	// * @param intervalReservoirName
+	// * the intervalReservoir to set
+	// */
+	// public void setIntervalReservoir(final String intervalReservoirName) {
+	// this.intervalReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), intervalReservoirName,
+	// Reservoir.class);
+	// }
 
 	/**
 	 * @param jmxReporters
@@ -531,7 +532,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		// Interval Metrics
 		for (final TimeUnit timeUnit : TimeUnit.values()) {
 			String lclName = MetricRegistry.name(this.name, "interval" + getPrettyName(timeUnit));
-			this.histogram = new Histogram(this.intervalReservoir);
+			this.histogram = new Histogram(new ExponentiallyDecayingReservoir());
 			this.metricRegistry.register(lclName, this.histogram);
 			this.intervals.put(timeUnit, this.histogram);
 		}
@@ -646,9 +647,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	private void updateAllIntervals(final long deltaInNanos) {
 		for (Entry<TimeUnit, Histogram> entry : this.intervals.entrySet()) {
+			Histogram histogram = entry.getValue();
 			long delta = entry.getKey().convert(deltaInNanos, TimeUnit.NANOSECONDS);
 			LOGGER.info("delta in {}: {}", entry.getKey(), delta);
-			entry.getValue().update(delta);
+			LOGGER.info("histogram: {}", histogram);
+			LOGGER.info("99th before: {}", histogram.getSnapshot().get99thPercentile());
+			histogram.update(delta);
+			LOGGER.info("99th after: {}", histogram.getSnapshot().get99thPercentile());
 		}
 	}
 
