@@ -88,8 +88,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	// logging
-	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
+	private static final String				SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER							= LoggerFactory.getLogger(SELF);
 
 	// basic fields
 	private final String					name;
@@ -97,51 +97,52 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private final MetricRegistry			metricRegistry;
 
 	// for default metrics
-	private final Map<TimeUnit, Histogram>	intervals				= new HashMap<TimeUnit, Histogram>();
-	private long							lastExchangeTime		= System.nanoTime();
-	private Meter							exchangeRate			= null;
-	private Timer							internalTimer			= null;
-	private Exchange						lastExchange			= null;
-	private boolean							isInternalTimerEnabled	= false;
-	private Reservoir						intervalReservoir		= new ExponentiallyDecayingReservoir();
+	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
+	private long							lastExchangeTime				= System.nanoTime();
+	private Meter							exchangeRate					= null;
+	private Timer							internalTimer					= null;
+	private Exchange						lastExchange					= null;
+	private boolean							isInternalTimerEnabled			= false;
+	private Reservoir						intervalReservoir				= new ExponentiallyDecayingReservoir();
 
 	// for timing metrics
-	private Timer							timer					= null;
-	private String							timingName				= "timing";
-	private String							timingActionName		= null;
-	private TimingAction					timingAction			= TimingAction.NOOP;
-	private Reservoir						timingReservoir			= new ExponentiallyDecayingReservoir();
+	private Timer							timer							= null;
+	private String							timingName						= "timing";
+	private String							timingActionName				= null;
+	private TimingAction					timingAction					= TimingAction.NOOP;
+	private Reservoir						timingReservoir					= new ExponentiallyDecayingReservoir();
 
 	// for custom histogram metrics
-	private Histogram						histogram				= null;
-	private String							histogramName			= "histogram";
-	private Expression						histogramValue			= null;
-	private Reservoir						histogramReservoir		= new ExponentiallyDecayingReservoir();
+	private Histogram						histogram						= null;
+	private String							histogramName					= "histogram";
+	private Expression						histogramValue					= null;
+	private Reservoir						histogramReservoir				= new ExponentiallyDecayingReservoir();
 
 	// for custom counter metrics
-	private Counter							counter					= null;
-	private String							counterName				= "count";
-	private Expression						counterDelta			= null;
+	private Counter							counter							= null;
+	private String							counterName						= "count";
+	private Expression						counterDelta					= null;
 
 	// for custom gauge metrics
-	private String							gaugeName				= "gauge";
-	private Expression						gaugeValue				= null;
-	private long							gaugeCacheDuration		= 10;
-	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
+	private String							gaugeName						= "gauge";
+	private Expression						gaugeValue						= null;
+	private long							gaugeCacheDuration				= 10;
+	private TimeUnit						gaugeCacheDurationUnit			= TimeUnit.SECONDS;
 
 	// for reporters
-	private static final Gson				GSON					= new Gson();
-	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
-	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
-	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
-	private static final Type				SLF4J_REPORTERS_TYPE	= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
-	private static final Type				CSV_REPORTERS_TYPE		= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
-	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
-	private final List<JmxReporter>			jmxReporters			= new ArrayList<JmxReporter>();
-	private final List<ConsoleReporter>		consoleReporters		= new ArrayList<ConsoleReporter>();
-	private final List<GraphiteReporter>	graphiteReporters		= new ArrayList<GraphiteReporter>();
-	private final List<Slf4jReporter>		slf4jReporters			= new ArrayList<Slf4jReporter>();
-	private final List<CsvReporter>			csvReporters			= new ArrayList<CsvReporter>();
+	private static final Gson				GSON							= new Gson();
+	private static final Type				JMX_REPORTERS_TYPE				= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
+	private static final Type				CONSOLE_REPORTERS_TYPE			= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
+	private static final Type				GRAPHITE_REPORTERS_TYPE			= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+	private static final Type				SLF4J_REPORTERS_TYPE			= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
+	private static final Type				CSV_REPORTERS_TYPE				= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
+	private final List<ReporterDefinition>	reporterDefinitions				= new ArrayList<ReporterDefinition>();
+	private final List<JmxReporter>			jmxReporters					= new ArrayList<JmxReporter>();
+	private final List<ConsoleReporter>		consoleReporters				= new ArrayList<ConsoleReporter>();
+	private final List<GraphiteReporter>	graphiteReporters				= new ArrayList<GraphiteReporter>();
+	private final List<Slf4jReporter>		slf4jReporters					= new ArrayList<Slf4jReporter>();
+	private final List<CsvReporter>			csvReporters					= new ArrayList<CsvReporter>();
+	private boolean							haveProcessedAtLeastOneExchange	= false;
 
 	/**
 	 * @param uri
@@ -282,7 +283,10 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.lastExchange = exchange;
 		this.lastExchangeTime = System.nanoTime();
 		this.exchangeRate.mark();
-		updateAllIntervals(deltaInNanos);
+		if (this.haveProcessedAtLeastOneExchange) {
+			this.haveProcessedAtLeastOneExchange = true;
+			updateAllIntervals(deltaInNanos);
+		}
 	}
 
 	/**
