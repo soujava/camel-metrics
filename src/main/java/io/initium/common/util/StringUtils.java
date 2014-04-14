@@ -39,7 +39,7 @@ public final class StringUtils {
 	/**
 	 * This class is not intended to ever be instantiated.
 	 */
-	StringUtils JsonUtils() {
+	private StringUtils() {
 		throw new AbstractMethodError("this class [" + SELF + "] is not intended to ever be instantiated");
 	}
 

@@ -122,4 +122,11 @@ public class OptionHelper {
 		return result1 != null ? result1 : result2;
 	}
 
+	/**
+	 * This class is not intended to ever be instantiated.
+	 */
+	private OptionHelper() {
+		throw new AbstractMethodError("this class [" + SELF + "] is not intended to ever be instantiated");
+	}
+
 }
