@@ -157,6 +157,8 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		this.metricsComponent.registerName(this.name);
 		// this.metricRegistry = metricsComponent.getMetricRegistry();
 		this.metricRegistry = new MetricRegistry();
+		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
+		this.metricRegistry.addListener(listener);
 		warnIfTimingStopIsUsedWithOtherParameters(parameters);
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		switch (this.timingAction) {
