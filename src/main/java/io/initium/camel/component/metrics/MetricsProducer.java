@@ -70,6 +70,7 @@ public class MetricsProducer extends DefaultProducer {
 
 	// fields
 	private final MetricsEndpoint	endpoint;
+	private boolean					haveProcessedAtLeastOneExchange	= false;
 
 	/**
 	 * @param endpoint
@@ -93,33 +94,35 @@ public class MetricsProducer extends DefaultProducer {
 	@Override
 	public void process(final Exchange exchange) throws Exception {
 		LOGGER.debug(MARKER, "process({})", exchange);
-		Context internalContext = null;
-		if (this.endpoint.isInternalTimerEnabled()) {
-			Timer internalTimer = this.endpoint.getInternalTimer();
-			if (internalTimer != null) {
-				internalContext = internalTimer.time();
+		if (this.haveProcessedAtLeastOneExchange) {
+			this.haveProcessedAtLeastOneExchange = true;
+			Context internalContext = null;
+			if (this.endpoint.isInternalTimerEnabled()) {
+				Timer internalTimer = this.endpoint.getInternalTimer();
+				if (internalTimer != null) {
+					internalContext = internalTimer.time();
+				}
+			}
+			try {
+				switch (this.endpoint.getTimingAction()) {
+					case START:
+						startTimer(exchange);
+					case NOOP:
+						// set lastExchange in endpoint for optional gauge
+						this.endpoint.mark(exchange);
+						addOptionalCounter(exchange);
+						addOptionalHistogram(exchange);
+						break;
+					case STOP:
+						stopTimer(exchange);
+						break;
+				}
+			} finally {
+				if (internalContext != null) {
+					internalContext.stop();
+				}
 			}
 		}
-		try {
-			switch (this.endpoint.getTimingAction()) {
-				case START:
-					startTimer(exchange);
-				case NOOP:
-					// set lastExchange in endpoint for optional gauge
-					this.endpoint.mark(exchange);
-					addOptionalCounter(exchange);
-					addOptionalHistogram(exchange);
-					break;
-				case STOP:
-					stopTimer(exchange);
-					break;
-			}
-		} finally {
-			if (internalContext != null) {
-				internalContext.stop();
-			}
-		}
-
 	}
 
 	/**
