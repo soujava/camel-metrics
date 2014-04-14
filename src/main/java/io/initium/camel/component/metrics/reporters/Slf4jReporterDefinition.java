@@ -84,7 +84,7 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 		// apply new values
 		slf4jReporterDefinition.setNameIfNotNull(override.getName());
 		slf4jReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		slf4jReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		slf4jReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
 		slf4jReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
 		slf4jReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
 		slf4jReporterDefinition.setFilterIfNotNull(override.getFilter());

@@ -70,7 +70,7 @@ public class JmxReporterDefinition implements ReporterDefinition<JmxReporterDefi
 		jmxReporterDefinition.setNameIfNotNull(override.getName());
 		jmxReporterDefinition.setDomainIfNotNull(override.getDomain());
 		jmxReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		jmxReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		jmxReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
 		jmxReporterDefinition.setFilterIfNotNull(override.getFilter());
 		return jmxReporterDefinition;
 	}

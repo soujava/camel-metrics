@@ -78,7 +78,7 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 		// apply new values
 		csvReporterDefinition.setNameIfNotNull(override.getName());
 		csvReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		csvReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		csvReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
 		csvReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
 		csvReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
 		csvReporterDefinition.setFilterIfNotNull(override.getFilter());

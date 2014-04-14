@@ -73,7 +73,7 @@ public class ConsoleReporterDefinition implements ReporterDefinition<ConsoleRepo
 		// apply new values
 		consoleReporterDefinition.setNameIfNotNull(override.getName());
 		consoleReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		consoleReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		consoleReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
 		consoleReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
 		consoleReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
 		consoleReporterDefinition.setFilterIfNotNull(override.getFilter());

@@ -87,7 +87,7 @@ public class GraphiteReporterDefinition implements ReporterDefinition<GraphiteRe
 		// apply new values
 		graphiteReporterDefinition.setNameIfNotNull(override.getName());
 		graphiteReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		graphiteReporterDefinition.setRateUnitIfNotNull(override.getDurationUnit());
+		graphiteReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
 		graphiteReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
 		graphiteReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
 		graphiteReporterDefinition.setHostIfNotNull(override.getHost());
