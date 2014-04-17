@@ -62,14 +62,22 @@ public class MetricsComponent extends UriEndpointComponent {
 	private final Map<String, MetricGroup>			metricGroups		= new HashMap<String, MetricGroup>();
 
 	/**
-	 * @param newReporterDefinitions
+	 * 
 	 */
-	public MetricsComponent(final ReporterDefinition... newReporterDefinitions) {
+	public MetricsComponent() {
 		super(MetricsEndpoint.class);
-		LOGGER.info(MARKER, "MetricsComponent({})", (Object[]) newReporterDefinitions);
+		LOGGER.info(MARKER, "MetricsComponent()");
 		this.metricRegistry = new MetricRegistry();
 		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
 		this.metricRegistry.addListener(listener);
+	}
+
+	/**
+	 * @param newReporterDefinitions
+	 */
+	public MetricsComponent(final ReporterDefinition... newReporterDefinitions) {
+		this();
+		LOGGER.info(MARKER, "MetricsComponent({})", (Object[]) newReporterDefinitions);
 		for (ReporterDefinition reporterDefinition : newReporterDefinitions) {
 			String reporterDefinitionName = reporterDefinition.getName();
 			if (reporterDefinitionName != null && this.reporterDefinitions.containsKey(reporterDefinitionName)) {
