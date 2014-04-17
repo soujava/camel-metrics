@@ -25,8 +25,7 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.initium.camel.component.metrics.reporters.ConsoleReporterDefinition;
-import io.initium.camel.component.metrics.reporters.JmxReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
 
 public class MetricsTest extends CamelTestSupport {
 
@@ -43,7 +42,6 @@ public class MetricsTest extends CamelTestSupport {
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
-
 				Processor myRandomProcessor = new Processor() {
 					@Override
 					public void process(final Exchange exchange) throws Exception {
@@ -55,16 +53,15 @@ public class MetricsTest extends CamelTestSupport {
 						exchange.getIn().setBody(stringBuilder.toString());
 					}
 				};
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?jmxDomain=context01");
-				// from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?jmxDomain=context02").delay(1000);
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?jmxDomain=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithCounter1?jmxDomain=context03&counterDelta=3&counterName=MyName");
-				// from("timer://namedTimer?period=100").setHeader("testCounterDelta",
-				// simple("2")).to("metrics://sampleWithCounter2?counterDelta=${in.header.testCounterDelta}");
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithHistogram1?histogramValue=3");
-				// from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithHistogram2?histogramValue=${in.body.length()}");
-				// from("timer://namedTimer?period=100").to("metrics://sampleWithGauge1?gaugeValue=sdsdds");
-				// from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithGauge2?gaugeValue=${in.body}");
+				from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?jmxDomain=context01");
+				from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?jmxDomain=context02").delay(1000);
+				from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?jmxDomain=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
+				from("timer://namedTimer?period=100").to("metrics://sampleWithCounter1?jmxDomain=context03&counterDelta=3&counterName=MyName");
+				from("timer://namedTimer?period=100").setHeader("testCounterDelta", simple("2")).to("metrics://sampleWithCounter2?counterDelta=${in.header.testCounterDelta}");
+				from("timer://namedTimer?period=100").to("metrics://sampleWithHistogram1?histogramValue=3");
+				from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithHistogram2?histogramValue=${in.body.length()}");
+				from("timer://namedTimer?period=100").to("metrics://sampleWithGauge1?gaugeValue=sdsdds");
+				from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithGauge2?gaugeValue=${in.body}");
 			}
 		});
 		this.context.start();
@@ -98,20 +95,38 @@ public class MetricsTest extends CamelTestSupport {
 	public void theThirdTest() throws Exception {
 		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
 		jmxReporterDefinition.setDomain("testDomain");
-		jmxReporterDefinition.setFilter("^(myMetric01.rate|myMetric01.intervalSeconds)$");
+		// jmxReporterDefinition.setFilter("^(myMetric01.rate|myMetric01.intervalSeconds)$");
 
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
-		consoleReporterDefinition.setPeriodDuration(1);
-		consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
-		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition, consoleReporterDefinition);
+		// ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+		// consoleReporterDefinition.setPeriodDuration(1);
+		// consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
+
+		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
 		this.context.addComponent("metrics", metricsComponent);
 		this.context.addRoutes(new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
+				Processor myRandomProcessor = new Processor() {
+					@Override
+					public void process(final Exchange exchange) throws Exception {
+						StringBuilder stringBuilder = new StringBuilder();
+						int size = random.nextInt(4);
+						for (int i = 1; i <= size; i++) {
+							stringBuilder.append(size);
+						}
+						exchange.getIn().setBody(stringBuilder.toString());
+					}
+				};
+
 				// @formatter:off
-				from("timer://myTestTimer?period=1000")
+				from("timer://myTestTimer?period=100")
 					//.to("log://io.initium.metrics?showAll=true&multiline=false")
-					.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]&timing=stop")
+					//.to("metrics://myMetric01?enableInternalTimer=true")
+					.process(myRandomProcessor)
+					.to("metrics://myMetric01?infix=${in.body}&jmxReporters=[{domain:metrics,dynamicDomain:'metrics.${in.body}'}]")
+					//.delay(1000)
+					//.to("metrics://myMetric01?timing=stop&infix=${in.body}")
+					//.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]&timing=stop")
 					;
 				// @formatter:on
 			}

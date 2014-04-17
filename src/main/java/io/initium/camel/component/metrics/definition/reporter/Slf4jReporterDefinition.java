@@ -13,10 +13,11 @@
  * License.
  */
 // @formatter:on
-package io.initium.camel.component.metrics.reporters;
+package io.initium.camel.component.metrics.definition.reporter;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.Exchange;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
@@ -25,13 +26,15 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 
+import io.initium.camel.component.metrics.MetricGroup;
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.1
  * @since 2014-02-19
  */
-public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporterDefinition> {
+public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jReporterDefinition> {
 
 	// fields
 	private static final String		DEFAULT_NAME					= Slf4jReporterDefinition.class.getSimpleName();
@@ -40,8 +43,11 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
 	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT	= TimeUnit.MINUTES;
 	private static final String		DEFAULT_FILTER					= null;
+	private static final String		DEFAULT_DYNAMIC_FILTER			= null;
 	private static final String		DEFAULT_LOGGER_NAME				= "metrics";
+	private static final String		DEFAULT_DYNAMIC_LOGGER_NAME		= null;
 	private static final String		DEFAULT_MARKER_NAME				= "metrics";
+	private static final String		DEFAULT_DYNAMIC_MARKER_NAME		= null;
 
 	/**
 	 * @return
@@ -56,6 +62,9 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 		slf4jReporterDefinition.setFilter(DEFAULT_FILTER);
 		slf4jReporterDefinition.setLoggerName(DEFAULT_LOGGER_NAME);
 		slf4jReporterDefinition.setMarkerName(DEFAULT_MARKER_NAME);
+		slf4jReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
+		slf4jReporterDefinition.setDynamicLoggerName(DEFAULT_DYNAMIC_LOGGER_NAME);
+		slf4jReporterDefinition.setDynamicMarkerName(DEFAULT_DYNAMIC_MARKER_NAME);
 		return slf4jReporterDefinition;
 	}
 
@@ -65,9 +74,12 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 	private TimeUnit	rateUnit;
 	private Long		periodDuration;
 	private TimeUnit	periodDurationUnit;
-	private String		filter;
 	private String		loggerName;
 	private String		markerName;
+	private String		filter;
+	private String		dynamicLoggerName;
+	private String		dynamicMarkerName;
+	private String		dynamicFilter;
 
 	@Override
 	public Slf4jReporterDefinition applyAsOverride(final Slf4jReporterDefinition override) {
@@ -81,6 +93,9 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 		slf4jReporterDefinition.setFilter(this.filter);
 		slf4jReporterDefinition.setLoggerName(this.loggerName);
 		slf4jReporterDefinition.setMarkerName(this.markerName);
+		slf4jReporterDefinition.setDynamicFilter(this.dynamicFilter);
+		slf4jReporterDefinition.setDynamicLoggerName(this.dynamicLoggerName);
+		slf4jReporterDefinition.setDynamicMarkerName(this.dynamicMarkerName);
 		// apply new values
 		slf4jReporterDefinition.setNameIfNotNull(override.getName());
 		slf4jReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
@@ -90,6 +105,9 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 		slf4jReporterDefinition.setFilterIfNotNull(override.getFilter());
 		slf4jReporterDefinition.setLoggerNameIfNotNull(override.getLoggerName());
 		slf4jReporterDefinition.setMarkerNameIfNotNull(override.getMarkerName());
+		slf4jReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
+		slf4jReporterDefinition.setDynamicLoggerNameIfNotNull(override.getDynamicLoggerName());
+		slf4jReporterDefinition.setDynamicMarkerNameIfNotNull(override.getDynamicMarkerName());
 		return slf4jReporterDefinition;
 	}
 
@@ -97,8 +115,13 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 	 * @param metricRegistry
 	 * @return
 	 */
-	public Slf4jReporter buildReporter(final MetricRegistry metricRegistry) {
+	public Slf4jReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
 		Slf4jReporterDefinition slf4jReporterDefinition = getReporterDefinitionWithDefaults();
+
+		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+		final String evaluatedLoggerName = creatingExchange == null ? this.loggerName : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+		final String evaluatedMarkerName = creatingExchange == null ? this.markerName : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+
 		// @formatter:off
 		Slf4jReporter slf4jReporter = Slf4jReporter
 				.forRegistry(metricRegistry)
@@ -107,15 +130,18 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
-						if(name==null || Slf4jReporterDefinition.this.filter==null){
+						if(!metricGroup.contains(metric)){
+							return false;
+						}
+						if(name==null || evaluatedFilter==null){
 							return true;
 						}
-						boolean result = name.matches(Slf4jReporterDefinition.this.filter);
+						boolean result = name.matches(evaluatedFilter);
 						return result;
 					}
-				})
-				.outputTo(LoggerFactory.getLogger(slf4jReporterDefinition.getLoggerName()))
-				.markWith(MarkerFactory.getMarker(slf4jReporterDefinition.getMarkerName()))
+						})
+				.outputTo(LoggerFactory.getLogger(evaluatedLoggerName))
+				.markWith(MarkerFactory.getMarker(evaluatedMarkerName))
 				.build();
 		// @formatter:on
 		return slf4jReporter;
@@ -126,6 +152,27 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
+	}
+
+	/**
+	 * @return the dynamicFilter
+	 */
+	public String getDynamicFilter() {
+		return this.dynamicFilter;
+	}
+
+	/**
+	 * @return the dynamicLoggerName
+	 */
+	public String getDynamicLoggerName() {
+		return this.dynamicLoggerName;
+	}
+
+	/**
+	 * @return the dynamicMarkerName
+	 */
+	public String getDynamicMarkerName() {
+		return this.dynamicMarkerName;
 	}
 
 	/**
@@ -183,6 +230,60 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
+	}
+
+	/**
+	 * @param dynamicFilter
+	 *            the dynamicFilter to set
+	 */
+	public void setDynamicFilter(final String dynamicFilter) {
+		this.dynamicFilter = dynamicFilter;
+	}
+
+	/**
+	 * @param dynamicFilter
+	 *            the dynamicFilter to set
+	 */
+	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
+		if (dynamicFilter != null) {
+			setDynamicFilter(dynamicFilter);
+		}
+	}
+
+	/**
+	 * @param dynamicLoggerName
+	 *            the dynamicLoggerName to set
+	 */
+	public void setDynamicLoggerName(final String dynamicLoggerName) {
+		this.dynamicLoggerName = dynamicLoggerName;
+	}
+
+	/**
+	 * @param dynamicLoggerName
+	 *            the dynamicLoggerName to set
+	 */
+	public void setDynamicLoggerNameIfNotNull(final String dynamicLoggerName) {
+		if (dynamicLoggerName != null) {
+			setDynamicLoggerName(dynamicLoggerName);
+		}
+	}
+
+	/**
+	 * @param dynamicMarkerName
+	 *            the dynamicMarkerName to set
+	 */
+	public void setDynamicMarkerName(final String dynamicMarkerName) {
+		this.dynamicMarkerName = dynamicMarkerName;
+	}
+
+	/**
+	 * @param dynamicMarkerName
+	 *            the dynamicMarkerName to set
+	 */
+	public void setDynamicMarkerNameIfNotNull(final String dynamicMarkerName) {
+		if (dynamicMarkerName != null) {
+			setDynamicMarkerName(dynamicMarkerName);
+		}
 	}
 
 	/**
@@ -255,8 +356,8 @@ public class Slf4jReporterDefinition implements ReporterDefinition<Slf4jReporter
 
 	@Override
 	public String toString() {
-		return "Slf4jReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter=" + this.filter
-				+ ", loggerName=" + this.loggerName + ", markerName=" + this.markerName + "]";
+		return "Slf4jReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", loggerName="
+				+ this.loggerName + ", markerName=" + this.markerName + ", filter=" + this.filter + ", dynamicLoggerName=" + this.dynamicLoggerName + ", dynamicMarkerName=" + this.dynamicMarkerName + ", dynamicFilter=" + this.dynamicFilter + "]";
 	}
 
 	/**

@@ -18,15 +18,11 @@ package io.initium.camel.component.metrics;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
-import org.apache.camel.Expression;
 import org.apache.camel.impl.DefaultProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
@@ -45,13 +41,6 @@ public class MetricsProducer extends DefaultProducer {
 	// logging
 	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
 	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
-
-	/**
-	 * @return
-	 */
-	private static String getFullTimingName(final String metricName, final String timingName) {
-		return MetricRegistry.name(metricName, timingName);
-	}
 
 	/**
 	 * @param exchange
@@ -81,11 +70,6 @@ public class MetricsProducer extends DefaultProducer {
 	}
 
 	@Override
-	public Endpoint getEndpoint() {
-		return this.endpoint;
-	}
-
-	@Override
 	public boolean isSingleton() {
 		return true;
 	}
@@ -93,107 +77,111 @@ public class MetricsProducer extends DefaultProducer {
 	@Override
 	public void process(final Exchange exchange) throws Exception {
 		LOGGER.debug(MARKER, "process({})", exchange);
-		Context internalContext = null;
+		Context internalTimerContext = null;
 		if (this.endpoint.isInternalTimerEnabled()) {
-			Timer internalTimer = this.endpoint.getInternalTimer();
+			Timer internalTimer = this.endpoint.getInternalTimer(this.endpoint.getTimingAction());
 			if (internalTimer != null) {
-				internalContext = internalTimer.time();
+				internalTimerContext = internalTimer.time();
 			}
 		}
 		try {
+			MetricGroup standardMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName());
 			switch (this.endpoint.getTimingAction()) {
 				case START:
-					startTimer(exchange);
+					startTimer(standardMetricGroup, exchange);
 				case NOOP:
-					// set lastExchange in endpoint for optional gauge
-					this.endpoint.mark(exchange);
-					addOptionalCounter(exchange);
-					addOptionalHistogram(exchange);
+					standardMetricGroup.mark(exchange);
 					break;
 				case STOP:
 					stopTimer(exchange);
 					break;
 			}
+			// determine non-standard MetricGroup
+			MetricGroup dynamicMetricGroup = null;
+			String infixValue = null;
+			if (this.endpoint.getInfixExpression() != null) {
+				infixValue = this.endpoint.getInfixExpression().evaluate(exchange, String.class);
+				String fullMetricGroupName = MetricRegistry.name(this.endpoint.getName(), infixValue);
+				if (!fullMetricGroupName.equalsIgnoreCase(MetricRegistry.name(this.endpoint.getName()))) {
+					dynamicMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName(), infixValue, exchange);
+				}
+			}
+			if (dynamicMetricGroup != null) {
+				switch (this.endpoint.getTimingAction()) {
+					case START:
+						startTimer(dynamicMetricGroup, infixValue, exchange);
+					case NOOP:
+						dynamicMetricGroup.mark(exchange);
+						break;
+					case STOP:
+						stopTimer(infixValue, exchange);
+						break;
+				}
+			}
 		} finally {
-			if (internalContext != null) {
-				internalContext.stop();
+			if (internalTimerContext != null) {
+				internalTimerContext.stop();
 			}
 		}
 	}
 
 	/**
+	 * @param metricGroup
 	 * @param exchange
 	 */
-	private void addOptionalCounter(final Exchange exchange) {
-		// optional Counter
-		Expression counterDeltaExpression = this.endpoint.getCounterDelta();
-		if (counterDeltaExpression != null) {
-			Long delta = counterDeltaExpression.evaluate(exchange, Long.class);
-			if (delta != null) {
-				Counter counter = this.endpoint.getCounter();
-				if (counter != null) {
-					counter.inc(delta);
-				}
+	private void startTimer(final MetricGroup metricGroup, final Exchange exchange) {
+		startTimer(metricGroup, null, exchange);
+	}
+
+	private void startTimer(final MetricGroup metricGroup, final String infixValue, final Exchange exchange) {
+		Map<String, Context> timerContextMap = getTimerContextMap(exchange);
+		if (timerContextMap != null) {
+			String fullTimerName;
+			if (infixValue != null) {
+				fullTimerName = MetricRegistry.name(this.endpoint.getName(), infixValue, this.endpoint.getTimingName());
 			} else {
-				LOGGER.warn(MARKER, "counterDelta does not evaluate to a Long");
+				fullTimerName = MetricRegistry.name(this.endpoint.getName(), this.endpoint.getTimingName());
 			}
-		}
-	}
-
-	/**
-	 * @param exchange
-	 */
-	private void addOptionalHistogram(final Exchange exchange) {
-		// optional histogram
-		Expression histogramValueExpression = this.endpoint.getHistogramValue();
-		if (histogramValueExpression != null) {
-			Long value = histogramValueExpression.evaluate(exchange, Long.class);
-			if (value != null) {
-				Histogram histogram = this.endpoint.getHistogram();
-				if (histogram != null) {
-					histogram.update(value);
-				}
-			} else {
-				LOGGER.warn(MARKER, "histogramValue does not evaluate to a Long");
-			}
-		}
-	}
-
-	/**
-	 * Starts the Timer context, but first Stops the previous, samely named, Timer context if it exists.
-	 * 
-	 * @param exchange
-	 */
-	private void startTimer(final Exchange exchange) {
-		Map<String, Context> map = getTimerContextMap(exchange);
-		if (map != null) {
 			// stop previous context if it exists
-			Context context = map.get(getFullTimingName(this.endpoint.getName(), this.endpoint.getTimingName()));
-			if (context != null) {
-				context.stop();
+			Context timerContext = timerContextMap.get(fullTimerName);
+			if (timerContext != null) {
+				timerContext.stop();
 			}
 			// start new context
-			context = this.endpoint.getTimer().time();
-			map.put(this.endpoint.getName(), context);
+			timerContext = metricGroup.getTimer().time();
+			timerContextMap.put(fullTimerName, timerContext);
 		} else {
-			LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
+			LOGGER.warn(MARKER, "timerContextMap is null, timing will not be recorded correctly");
 		}
 	}
 
 	/**
-	 * Stops the Timer context if it exists, and removes it from the map in the exchange.
-	 * 
 	 * @param exchange
 	 */
 	private void stopTimer(final Exchange exchange) {
-		Map<String, Context> map = getTimerContextMap(exchange);
-		if (map != null) {
-			Context context = map.remove(this.endpoint.getName());
-			if (context != null) {
-				context.stop();
+		stopTimer(null, exchange);
+	}
+
+	/**
+	 * @param infixValue
+	 * @param exchange
+	 */
+	private void stopTimer(final String infixValue, final Exchange exchange) {
+		Map<String, Context> timerContextMap = getTimerContextMap(exchange);
+		if (timerContextMap != null) {
+			String fullTimerName;
+			if (infixValue != null) {
+				fullTimerName = MetricRegistry.name(this.endpoint.getName(), infixValue, this.endpoint.getTimingName());
+			} else {
+				fullTimerName = MetricRegistry.name(this.endpoint.getName(), this.endpoint.getTimingName());
+			}
+			// stop previous context if it exists
+			Context timerContext = timerContextMap.get(fullTimerName);
+			if (timerContext != null) {
+				timerContext.stop();
 			}
 		} else {
-			LOGGER.warn(MARKER, "contextMap is null, timing will not be recorded correctly");
+			LOGGER.warn(MARKER, "timerContextMap is null, timing will not be recorded correctly");
 		}
 	}
 

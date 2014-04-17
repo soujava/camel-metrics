@@ -28,7 +28,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import io.initium.camel.component.metrics.reporters.ReporterDefinition;
+import com.codahale.metrics.MetricRegistry;
+
+import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
+import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -55,6 +58,8 @@ public class MetricsComponent extends UriEndpointComponent {
 	// fields
 	private final Map<String, ReporterDefinition>	reporterDefinitions	= new HashMap<String, ReporterDefinition>();
 	private final Set<String>						metricNames			= new HashSet<String>();
+	private final MetricRegistry					metricRegistry;
+	private final Map<String, MetricGroup>			metricGroups		= new HashMap<String, MetricGroup>();
 
 	/**
 	 * @param newReporterDefinitions
@@ -62,8 +67,9 @@ public class MetricsComponent extends UriEndpointComponent {
 	public MetricsComponent(final ReporterDefinition... newReporterDefinitions) {
 		super(MetricsEndpoint.class);
 		LOGGER.info(MARKER, "MetricsComponent({})", (Object[]) newReporterDefinitions);
-		// this.metricRegistry = new MetricRegistry();
-		// this.metricRegistry.addListener(new LoggingMetricRegistryListener(LOGGER, MARKER, Level.INFO));
+		this.metricRegistry = new MetricRegistry();
+		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
+		this.metricRegistry.addListener(listener);
 		for (ReporterDefinition reporterDefinition : newReporterDefinitions) {
 			String reporterDefinitionName = reporterDefinition.getName();
 			if (reporterDefinitionName != null && this.reporterDefinitions.containsKey(reporterDefinitionName)) {
@@ -71,6 +77,14 @@ public class MetricsComponent extends UriEndpointComponent {
 			}
 			this.reporterDefinitions.put(reporterDefinitionName, reporterDefinition);
 		}
+	}
+
+	public Map<String, MetricGroup> getMetricGroups() {
+		return this.metricGroups;
+	}
+
+	public MetricRegistry getMetricRegistry() {
+		return this.metricRegistry;
 	}
 
 	/**

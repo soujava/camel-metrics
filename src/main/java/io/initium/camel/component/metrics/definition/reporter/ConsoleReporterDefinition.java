@@ -13,15 +13,18 @@
  * License.
  */
 // @formatter:on
-package io.initium.camel.component.metrics.reporters;
+package io.initium.camel.component.metrics.definition.reporter;
 
-import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-import com.codahale.metrics.CsvReporter;
+import org.apache.camel.Exchange;
+
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+
+import io.initium.camel.component.metrics.MetricGroup;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -29,30 +32,30 @@ import com.codahale.metrics.MetricRegistry;
  * @version 1.1
  * @since 2014-02-19
  */
-public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefinition> {
+public class ConsoleReporterDefinition extends AbstractReporterDefinition<ConsoleReporterDefinition> {
 
 	// fields
-	private static final String		DEFAULT_NAME					= CsvReporterDefinition.class.getSimpleName();
+	private static final String		DEFAULT_NAME					= ConsoleReporterDefinition.class.getSimpleName();
 	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
 	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
 	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT	= TimeUnit.MINUTES;
 	private static final String		DEFAULT_FILTER					= null;
-	private static final String		DEFAULT_DIRECTORY				= ".";
+	private static final String		DEFAULT_DYNAMIC_FILTER			= null;
 
 	/**
 	 * @return
 	 */
-	public static CsvReporterDefinition getDefaultReporter() {
-		CsvReporterDefinition csvReporterDefinition = new CsvReporterDefinition();
-		csvReporterDefinition.setName(DEFAULT_NAME);
-		csvReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		csvReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		csvReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
-		csvReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
-		csvReporterDefinition.setFilter(DEFAULT_FILTER);
-		csvReporterDefinition.setDirectory(DEFAULT_DIRECTORY);
-		return csvReporterDefinition;
+	public static ConsoleReporterDefinition getDefaultReporter() {
+		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+		consoleReporterDefinition.setName(DEFAULT_NAME);
+		consoleReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		consoleReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		consoleReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
+		consoleReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
+		consoleReporterDefinition.setFilter(DEFAULT_FILTER);
+		consoleReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
+		return consoleReporterDefinition;
 	}
 
 	// fields
@@ -62,61 +65,61 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 	private Long		periodDuration;
 	private TimeUnit	periodDurationUnit;
 	private String		filter;
-	private String		directory;
+
+	private String		dynamicFilter;
 
 	@Override
-	public CsvReporterDefinition applyAsOverride(final CsvReporterDefinition override) {
-		CsvReporterDefinition csvReporterDefinition = new CsvReporterDefinition();
+	public ConsoleReporterDefinition applyAsOverride(final ConsoleReporterDefinition override) {
+		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
 		// get current values
-		csvReporterDefinition.setName(this.name);
-		csvReporterDefinition.setDurationUnit(this.durationUnit);
-		csvReporterDefinition.setRateUnit(this.rateUnit);
-		csvReporterDefinition.setPeriodDuration(this.periodDuration);
-		csvReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
-		csvReporterDefinition.setFilter(this.filter);
-		csvReporterDefinition.setDirectory(this.directory);
+		consoleReporterDefinition.setName(this.name);
+		consoleReporterDefinition.setDurationUnit(this.durationUnit);
+		consoleReporterDefinition.setRateUnit(this.rateUnit);
+		consoleReporterDefinition.setPeriodDuration(this.periodDuration);
+		consoleReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
+		consoleReporterDefinition.setFilter(this.filter);
+		consoleReporterDefinition.setDynamicFilter(this.dynamicFilter);
 		// apply new values
-		csvReporterDefinition.setNameIfNotNull(override.getName());
-		csvReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		csvReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
-		csvReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
-		csvReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
-		csvReporterDefinition.setFilterIfNotNull(override.getFilter());
-		csvReporterDefinition.setDirectoryIfNotNull(override.getDirectory());
-		return csvReporterDefinition;
+		consoleReporterDefinition.setNameIfNotNull(override.getName());
+		consoleReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		consoleReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
+		consoleReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
+		consoleReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
+		consoleReporterDefinition.setFilterIfNotNull(override.getFilter());
+		consoleReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
+		return consoleReporterDefinition;
 	}
 
 	/**
 	 * @param metricRegistry
 	 * @return
 	 */
-	public CsvReporter buildReporter(final MetricRegistry metricRegistry) {
-		CsvReporterDefinition csvReporterDefinition = getReporterDefinitionWithDefaults();
+	public ConsoleReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
+		ConsoleReporterDefinition consoleReporterDefinition = getReporterDefinitionWithDefaults();
+
+		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(consoleReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+
 		// @formatter:off
-		CsvReporter csvReporter = CsvReporter
+		ConsoleReporter consoleReporter = ConsoleReporter
 				.forRegistry(metricRegistry)
-				.convertDurationsTo(csvReporterDefinition.getDurationUnit())
-				.convertRatesTo(csvReporterDefinition.getRateUnit())
+				.convertDurationsTo(consoleReporterDefinition.getDurationUnit())
+				.convertRatesTo(consoleReporterDefinition.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
-						if(name==null || CsvReporterDefinition.this.filter==null){
+						if(!metricGroup.contains(metric)){
+							return false;
+						}
+						if(name==null || evaluatedFilter==null){
 							return true;
 						}
-						boolean result = name.matches(CsvReporterDefinition.this.filter);
+						boolean result = name.matches(evaluatedFilter);
 						return result;
 					}
 				})
-				.build(new File(CsvReporterDefinition.this.directory));
+				.build();
 		// @formatter:on
-		return csvReporter;
-	}
-
-	/**
-	 * @return the directory
-	 */
-	public String getDirectory() {
-		return this.directory;
+		return consoleReporter;
 	}
 
 	/**
@@ -124,6 +127,13 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
+	}
+
+	/**
+	 * @return the dynamicFilter
+	 */
+	public String getDynamicFilter() {
+		return this.dynamicFilter;
 	}
 
 	/**
@@ -160,21 +170,31 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 	}
 
 	@Override
-	public CsvReporterDefinition getReporterDefinitionWithDefaults() {
+	public ConsoleReporterDefinition getReporterDefinitionWithDefaults() {
 		return getDefaultReporter().applyAsOverride(this);
-	}
-
-	/**
-	 * @param directory
-	 *            the directory to set
-	 */
-	public void setDirectory(final String directory) {
-		this.directory = directory;
 	}
 
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
+	}
+
+	/**
+	 * @param dynamicFilter
+	 *            the dynamicFilter to set
+	 */
+	public void setDynamicFilter(final String dynamicFilter) {
+		this.dynamicFilter = dynamicFilter;
+	}
+
+	/**
+	 * @param dynamicFilter
+	 *            the dynamicFilter to set
+	 */
+	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
+		if (dynamicFilter != null) {
+			this.dynamicFilter = dynamicFilter;
+		}
 	}
 
 	/**
@@ -231,17 +251,8 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 
 	@Override
 	public String toString() {
-		return "CsvReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter=" + this.filter
-				+ ", directory=" + this.directory + "]";
-	}
-
-	/**
-	 * @param directory
-	 */
-	private void setDirectoryIfNotNull(final String directory) {
-		if (directory != null) {
-			setDirectory(directory);
-		}
+		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter="
+				+ this.filter + ", dynamicFilter=" + this.dynamicFilter + "]";
 	}
 
 	/**
@@ -262,9 +273,6 @@ public class CsvReporterDefinition implements ReporterDefinition<CsvReporterDefi
 		}
 	}
 
-	/**
-	 * @param periodDuration
-	 */
 	private void setPeriodDurationIfNotNull(final Long periodDuration) {
 		if (periodDuration != null) {
 			setPeriodDuration(periodDuration);

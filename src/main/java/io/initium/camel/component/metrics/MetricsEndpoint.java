@@ -18,52 +18,39 @@ package io.initium.camel.component.metrics;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
-import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
-import org.apache.camel.util.CamelContextHelper;
 import org.apache.camel.util.EndpointHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.CachedGauge;
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.ExponentiallyDecayingReservoir;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Reservoir;
-import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.Timer;
-import com.codahale.metrics.graphite.GraphiteReporter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener;
-import io.initium.camel.component.metrics.reporters.ConsoleReporterDefinition;
-import io.initium.camel.component.metrics.reporters.CsvReporterDefinition;
-import io.initium.camel.component.metrics.reporters.GraphiteReporterDefinition;
-import io.initium.camel.component.metrics.reporters.JmxReporterDefinition;
-import io.initium.camel.component.metrics.reporters.ReporterDefinition;
-import io.initium.camel.component.metrics.reporters.Slf4jReporterDefinition;
+import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
+import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
+import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
+import io.initium.camel.component.metrics.definition.metric.TimerDefinition;
+import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.CsvReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.GraphiteReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
+import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefinition;
+import io.initium.common.util.MetricUtils;
 import io.initium.common.util.OptionHelper;
-import io.initium.common.util.StringUtils;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
@@ -73,7 +60,7 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
  * @version 1.0
  * @since 2014-02-19
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes"})
 public class MetricsEndpoint extends DefaultEndpoint {
 
 	// TODO remove suppress "rawtypes", "unchecked" warnings by refactoring ReporterDefinition
@@ -88,60 +75,48 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	// logging
-	private static final String				SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER							= LoggerFactory.getLogger(SELF);
+	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
 
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
-	private final MetricRegistry			metricRegistry;
 
-	// for default metrics
-	private final Map<TimeUnit, Histogram>	intervals						= new HashMap<TimeUnit, Histogram>();
-	private long							lastExchangeTime				= System.nanoTime();
-	private Meter							exchangeRate					= null;
-	private Timer							internalTimer					= null;
-	private Exchange						lastExchange					= null;
-	private boolean							isInternalTimerEnabled			= false;
-	private boolean							haveProcessedAtLeastOneExchange	= false;
+	private Expression						infixExpression;
+	private boolean							isInternalTimerEnabled	= false;
+	private final Timer						internalTimerStart		= null;
+	private final Timer						internalTimerNoop		= null;
 
-	// for timing metrics
-	private Timer							timer							= null;
-	private String							timingName						= "timing";
-	private String							timingActionName				= null;
-	private TimingAction					timingAction					= TimingAction.NOOP;
-	private Reservoir						timingReservoir					= new ExponentiallyDecayingReservoir();
+	private final Timer						internalTimerStop		= null;
+	// for timer metric
+	private final Timer						timer					= null;
+	private String							timingName				= "timing";
+	private String							timingActionName		= null;
 
-	// for custom histogram metrics
-	private Histogram						histogram						= null;
-	private String							histogramName					= "histogram";
-	private Expression						histogramValue					= null;
-	private Reservoir						histogramReservoir				= new ExponentiallyDecayingReservoir();
+	private TimingAction					timingAction			= TimingAction.NOOP;
+	// for expression based counter metric
+	private String							counterName				= "count";
 
-	// for custom counter metrics
-	private Counter							counter							= null;
-	private String							counterName						= "count";
-	private Expression						counterDelta					= null;
+	private Expression						counterExpression		= null;
+	// for expression based histogram metric
+	private String							histogramName			= "histogram";
 
-	// for custom gauge metrics
-	private String							gaugeName						= "gauge";
-	private Expression						gaugeValue						= null;
-	private long							gaugeCacheDuration				= 10;
-	private TimeUnit						gaugeCacheDurationUnit			= TimeUnit.SECONDS;
+	private Expression						histogramExpression		= null;
+	// for expression based gauge metric
+	private String							gaugeName				= "gauge";
+	private Expression						gaugeExpression			= null;
+	private long							gaugeCacheDuration		= 10;
 
+	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
 	// for reporters
-	private static final Gson				GSON							= new Gson();
-	private static final Type				JMX_REPORTERS_TYPE				= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
-	private static final Type				CONSOLE_REPORTERS_TYPE			= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
-	private static final Type				GRAPHITE_REPORTERS_TYPE			= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
-	private static final Type				SLF4J_REPORTERS_TYPE			= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
-	private static final Type				CSV_REPORTERS_TYPE				= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
-	private final List<ReporterDefinition>	reporterDefinitions				= new ArrayList<ReporterDefinition>();
-	private final List<JmxReporter>			jmxReporters					= new ArrayList<JmxReporter>();
-	private final List<ConsoleReporter>		consoleReporters				= new ArrayList<ConsoleReporter>();
-	private final List<GraphiteReporter>	graphiteReporters				= new ArrayList<GraphiteReporter>();
-	private final List<Slf4jReporter>		slf4jReporters					= new ArrayList<Slf4jReporter>();
-	private final List<CsvReporter>			csvReporters					= new ArrayList<CsvReporter>();
+	private static final Gson				GSON					= new Gson();
+	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
+	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
+	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+	private static final Type				SLF4J_REPORTERS_TYPE	= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
+	private static final Type				CSV_REPORTERS_TYPE		= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
+
+	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
 
 	/**
 	 * @param uri
@@ -155,9 +130,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		this.metricsComponent = metricsComponent;
 		this.name = name;
-		this.metricRegistry = new MetricRegistry();
-		LoggingMetricRegistryListener listener = new LoggingMetricRegistryListener(LOGGER, MARKER, LoggingMetricRegistryListener.Level.INFO);
-		this.metricRegistry.addListener(listener);
 		warnIfTimingStopIsUsedWithOtherParameters(parameters);
 		EndpointHelper.setProperties(getCamelContext(), this, parameters);
 		switch (this.timingAction) {
@@ -166,7 +138,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 				break;
 			default:
 				this.metricsComponent.registerName(this.name);
-				initializeMetrics();
+				initializeMetricGroup(this.name);
 				break;
 		}
 	}
@@ -185,45 +157,43 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @return the counter
+	 * @return the infixExpression
 	 */
-	public Counter getCounter() {
-		return this.counter;
-	}
-
-	/**
-	 * @return the counter
-	 */
-	public Expression getCounterDelta() {
-		return this.counterDelta;
-	}
-
-	/**
-	 * @return the exchangeRateMetric
-	 */
-	public Meter getExchangeRate() {
-		return this.exchangeRate;
-	};
-
-	/**
-	 * @return the histogram
-	 */
-	public Histogram getHistogram() {
-		return this.histogram;
-	}
-
-	/**
-	 * @return the histogramValue
-	 */
-	public Expression getHistogramValue() {
-		return this.histogramValue;
+	public Expression getInfixExpression() {
+		return this.infixExpression;
 	}
 
 	/**
 	 * @return
 	 */
 	public Timer getInternalTimer() {
-		return this.internalTimer;
+		return getInternalTimer(TimingAction.NOOP);
+	}
+
+	/**
+	 * @param timingAction
+	 * @return
+	 */
+	public Timer getInternalTimer(final TimingAction timingAction) {
+		switch (timingAction) {
+			case START:
+				return this.internalTimerStart;
+			case STOP:
+				return this.internalTimerStop;
+			default:
+				return this.internalTimerNoop;
+		}
+	}
+
+	/**
+	 * @return
+	 */
+	public MetricsComponent getMetricComponent() {
+		return this.metricsComponent;
+	}
+
+	public MetricRegistry getMetricsRegistry() {
+		return this.metricsComponent.getMetricRegistry();
 	}
 
 	/**
@@ -231,6 +201,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public String getName() {
 		return this.name;
+	}
+
+	/**
+	 * @return the reporterDefinitions
+	 */
+	public List<ReporterDefinition> getReporterDefinitions() {
+		return this.reporterDefinitions;
 	}
 
 	/**
@@ -262,6 +239,85 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param baseName
+	 * @param infixName
+	 * @return
+	 * @throws Exception
+	 */
+	public synchronized MetricGroup initializeMetricGroup(final String baseName, final String infixName) throws Exception {
+		LOGGER.debug(MARKER, "initializeMetricGroup({},{})", baseName, infixName);
+		String fullMetricGroupName = MetricUtils.calculateFullMetricName(baseName, infixName);
+		MetricGroup metricGroup = this.metricsComponent.getMetricGroups().get(fullMetricGroupName);
+		if (metricGroup != null) {
+			return metricGroup;
+		}
+		metricGroup = new MetricGroup(this, baseName, infixName);
+		// timer
+		if (this.timingAction == TimingAction.START) {
+			TimerDefinition timerDefinition = new TimerDefinition(this.timingName);
+			metricGroup.addTimerDefinition(timerDefinition);
+		}
+		// expression based counter
+		if (this.counterExpression != null) {
+			CounterDefinition counterDefinition = new CounterDefinition(this.counterName, this.counterExpression);
+			metricGroup.addCounterDefinition(counterDefinition);
+		}
+		// expression based histogram
+		if (this.histogramExpression != null) {
+			HistogramDefinition histogramDefinition = new HistogramDefinition(this.histogramName, this.histogramExpression);
+			metricGroup.addHistogramDefinition(histogramDefinition);
+		}
+		// expression based gauge
+		if (this.gaugeExpression != null) {
+			CachedGaugeDefinition cachedGaugeDefinition = new CachedGaugeDefinition(this.gaugeName, this.gaugeExpression, this.gaugeCacheDuration, this.gaugeCacheDurationUnit);
+			metricGroup.addGaugeDefinition(cachedGaugeDefinition);
+		}
+		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
+		getCamelContext().addService(metricGroup);
+		return metricGroup;
+	}
+
+	/**
+	 * @param baseName
+	 * @param infixName
+	 * @param creatingExchange
+	 * @return
+	 * @throws Exception
+	 */
+	public synchronized MetricGroup initializeMetricGroup(final String baseName, final String infixName, final Exchange creatingExchange) throws Exception {
+		LOGGER.debug(MARKER, "initializeMetricGroup({},{})", baseName, infixName);
+		String fullMetricGroupName = MetricUtils.calculateFullMetricName(baseName, infixName);
+		MetricGroup metricGroup = this.metricsComponent.getMetricGroups().get(fullMetricGroupName);
+		if (metricGroup != null) {
+			return metricGroup;
+		}
+		metricGroup = new MetricGroup(this, baseName, infixName, creatingExchange);
+		// timer
+		if (this.timingAction == TimingAction.START) {
+			TimerDefinition timerDefinition = new TimerDefinition(this.timingName);
+			metricGroup.addTimerDefinition(timerDefinition);
+		}
+		// expression based counter
+		if (this.counterExpression != null) {
+			CounterDefinition counterDefinition = new CounterDefinition(this.counterName, this.counterExpression);
+			metricGroup.addCounterDefinition(counterDefinition);
+		}
+		// expression based histogram
+		if (this.histogramExpression != null) {
+			HistogramDefinition histogramDefinition = new HistogramDefinition(this.histogramName, this.histogramExpression);
+			metricGroup.addHistogramDefinition(histogramDefinition);
+		}
+		// expression based gauge
+		if (this.gaugeExpression != null) {
+			CachedGaugeDefinition cachedGaugeDefinition = new CachedGaugeDefinition(this.gaugeName, this.gaugeExpression, this.gaugeCacheDuration, this.gaugeCacheDurationUnit);
+			metricGroup.addGaugeDefinition(cachedGaugeDefinition);
+		}
+		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
+		getCamelContext().addService(metricGroup);
+		return metricGroup;
+	}
+
+	/**
 	 * @return the isInternalTimerEnabled
 	 */
 	public boolean isInternalTimerEnabled() {
@@ -274,18 +330,42 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param exchange
+	 * @param baseName
+	 * @return
+	 * @throws Exception
 	 */
-	public void mark(final Exchange exchange) {
-		long deltaInNanos = lastExchangeDelta();
-		this.lastExchange = exchange;
-		this.lastExchangeTime = System.nanoTime();
-		this.exchangeRate.mark();
-		if (this.haveProcessedAtLeastOneExchange) {
-			LOGGER.trace("deltaInNanos: {}", deltaInNanos);
-			updateAllIntervals(deltaInNanos);
+	public MetricGroup lookupMetricGroup(final String baseName) throws Exception {
+		return lookupMetricGroup(baseName, null);
+	}
+
+	/**
+	 * @param baseName
+	 * @param infixName
+	 * @return
+	 * @throws Exception
+	 */
+	public MetricGroup lookupMetricGroup(final String baseName, final String infixName) throws Exception {
+		String fullMetricGroupName = MetricUtils.calculateFullMetricName(baseName, infixName);
+		MetricGroup metricGroup = this.metricsComponent.getMetricGroups().get(fullMetricGroupName);
+		if (metricGroup != null) {
+			return metricGroup;
 		}
-		this.haveProcessedAtLeastOneExchange = true;
+		return initializeMetricGroup(baseName, infixName);
+	}
+
+	/**
+	 * @param baseName
+	 * @param infixName
+	 * @return
+	 * @throws Exception
+	 */
+	public MetricGroup lookupMetricGroup(final String baseName, final String infixName, final Exchange exchange) throws Exception {
+		String fullMetricGroupName = MetricUtils.calculateFullMetricName(baseName, infixName);
+		MetricGroup metricGroup = this.metricsComponent.getMetricGroups().get(fullMetricGroupName);
+		if (metricGroup != null) {
+			return metricGroup;
+		}
+		return initializeMetricGroup(baseName, infixName, exchange);
 	}
 
 	/**
@@ -300,19 +380,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param counter
-	 *            the counter to set
+	 * @param counterExpression
+	 *            the counterExpression to set
 	 */
-	public void setCounter(final Counter counter) {
-		this.counter = counter;
-	}
-
-	/**
-	 * @param counterDelta
-	 *            the counterDelta to set
-	 */
-	public void setCounterDelta(final String counterDelta) {
-		this.counterDelta = createFileLanguageExpression(counterDelta);
+	public void setCounterDelta(final String counterExpression) {
+		this.counterExpression = createFileLanguageExpression(counterExpression);
 	}
 
 	/**
@@ -371,7 +443,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the gaugeValueDelta to set
 	 */
 	public void setGaugeValue(final String gaugeValue) {
-		this.gaugeValue = createFileLanguageExpression(gaugeValue);
+		this.gaugeExpression = createFileLanguageExpression(gaugeValue);
 	}
 
 	/**
@@ -394,19 +466,19 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param histogramReservoirName
-	 *            the histogramReservoir to set
+	 * @param histogramExpression
+	 *            the histogramExpression to set
 	 */
-	public void setHistogramReservoir(final String histogramReservoirName) {
-		this.histogramReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), histogramReservoirName, Reservoir.class);
+	public void setHistogramValue(final String histogramExpression) {
+		this.histogramExpression = createFileLanguageExpression(histogramExpression);
 	}
 
 	/**
-	 * @param histogramValue
-	 *            the histogramValueDelta to set
+	 * @param infix
+	 *            the infix to set
 	 */
-	public void setHistogramValue(final String histogramValue) {
-		this.histogramValue = createFileLanguageExpression(histogramValue);
+	public void setInfix(final String infix) {
+		this.infixExpression = createFileLanguageExpression(infix);
 	}
 
 	/**
@@ -418,13 +490,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
 			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
-	}
-
-	/**
-	 * @param lastExchange
-	 */
-	public void setLastExchange(final Exchange lastExchange) {
-		this.lastExchange = lastExchange;
 	}
 
 	/**
@@ -456,25 +521,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param timingReservoirName
-	 *            the timingReservoir to set
-	 */
-	public void setTimingReservoir(final String timingReservoirName) {
-		if (timingReservoirName != null && timingReservoirName.length() > 0) {
-			char firstChar = timingReservoirName.charAt(0);
-			if (firstChar == '#') {
-				String localName = timingReservoirName.substring(1);
-				if (localName.length() > 0) {
-					this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName, Reservoir.class);
-				}
-			}
-			if (this.timingReservoir == null) {
-				throw new NoSuchBeanException(this.name);
-			}
-		}
-	}
-
-	/**
 	 * @param expression
 	 * @return
 	 */
@@ -488,161 +534,32 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		return language.createExpression(expression);
 	}
 
-	/**
-	 * @param timeUnit
-	 * @return
-	 */
-	private String getPrettyName(final TimeUnit timeUnit) {
-		return StringUtils.capitalize(timeUnit.toString());
-	}
+	// /**
+	// * @param timingReservoirName
+	// * the timingReservoir to set
+	// */
+	// public void setTimingReservoir(final String timingReservoirName) {
+	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
+	// char firstChar = timingReservoirName.charAt(0);
+	// if (firstChar == '#') {
+	// String localName = timingReservoirName.substring(1);
+	// if (localName.length() > 0) {
+	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
+	// Reservoir.class);
+	// }
+	// }
+	// if (this.timingReservoir == null) {
+	// throw new NoSuchBeanException(this.name);
+	// }
+	// }
+	// }
 
 	/**
-	 * 
+	 * @param baseName
+	 * @throws Exception
 	 */
-	private void initializeMetrics() {
-		LOGGER.debug(MARKER, "initializeMetrics()");
-
-		// Exchange Rate
-		String exchangeRateMetricName = MetricRegistry.name(this.name, "rate");
-		this.exchangeRate = this.metricRegistry.meter(exchangeRateMetricName);
-
-		// Since Metrics
-		for (final TimeUnit timeUnit : TimeUnit.values()) {
-			String sinceName = MetricRegistry.name(this.name, "since" + getPrettyName(timeUnit));
-			this.metricRegistry.register(sinceName, new Gauge<Double>() {
-				@Override
-				public Double getValue() {
-					return lastExchangeDelta(timeUnit);
-				}
-			});
-		}
-
-		// Interval Metrics
-		for (final TimeUnit timeUnit : TimeUnit.values()) {
-			String lclName = MetricRegistry.name(this.name, "interval" + getPrettyName(timeUnit));
-			this.histogram = new Histogram(new ExponentiallyDecayingReservoir());
-			this.metricRegistry.register(lclName, this.histogram);
-			this.intervals.put(timeUnit, this.histogram);
-		}
-
-		// Timing Metrics
-		if (this.timingAction == TimingAction.START) {
-			String lclName = MetricRegistry.name(this.name, this.timingName);
-			LOGGER.debug(MARKER, "enabling timing metrics: {}", lclName);
-			this.timer = new Timer(this.timingReservoir);
-			this.metricRegistry.register(lclName, this.timer);
-		}
-
-		// Counter Metrics
-		if (this.counterDelta != null) {
-			String lclName = MetricRegistry.name(this.name, this.counterName);
-			LOGGER.debug(MARKER, "enabling counter metrics: {}", lclName);
-			this.counter = this.metricRegistry.counter(lclName);
-		}
-
-		// Histogram Metrics
-		if (this.histogramValue != null) {
-			String lclName = MetricRegistry.name(this.name, this.histogramName);
-			LOGGER.debug(MARKER, "enabling histogram metrics: {}", lclName);
-			this.histogram = new Histogram(this.histogramReservoir);
-			this.metricRegistry.register(lclName, this.histogram);
-		}
-
-		// Gauge Metrics (Cached By Default)
-		if (this.gaugeValue != null) {
-			String lclName = MetricRegistry.name(this.name, this.gaugeName);
-			LOGGER.debug(MARKER, "enabling gauge metrics: {}", lclName);
-			this.metricRegistry.register(lclName, new CachedGauge<Object>(this.gaugeCacheDuration, this.gaugeCacheDurationUnit) {
-				@Override
-				protected Object loadValue() {
-					if (MetricsEndpoint.this.lastExchange != null) {
-						return MetricsEndpoint.this.gaugeValue.evaluate(MetricsEndpoint.this.lastExchange, Object.class);
-					} else {
-						return null;
-					}
-				}
-			});
-
-		}
-
-		// Internal Timer
-		if (this.isInternalTimerEnabled) {
-			String internalTimerMetricName = MetricRegistry.name(this.name, "internalTiming");
-			this.internalTimer = this.metricRegistry.timer(internalTimerMetricName);
-		}
-	}
-
-	/**
-	 * @return
-	 */
-	private long lastExchangeDelta() {
-		return System.nanoTime() - MetricsEndpoint.this.lastExchangeTime;
-	}
-
-	/**
-	 * @return
-	 */
-	private double lastExchangeDelta(final TimeUnit timeUnit) {
-		return (double) lastExchangeDelta() / timeUnit.toNanos(1);
-	}
-
-	/**
-	 * @param reporterDefinition
-	 */
-	private void registerAndStart(final ReporterDefinition reporterDefinition) {
-		if (reporterDefinition instanceof JmxReporterDefinition) {
-			JmxReporterDefinition jmxReporterDefinition = ((JmxReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding JmxReporterDefinition: {}", jmxReporterDefinition);
-			JmxReporter jmxReporter = jmxReporterDefinition.buildReporter(this.metricRegistry);
-			this.jmxReporters.add(jmxReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", jmxReporter);
-			jmxReporter.start();
-		} else if (reporterDefinition instanceof ConsoleReporterDefinition) {
-			ConsoleReporterDefinition consoleReporterDefinition = ((ConsoleReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding ConsoleReporterDefinition: {}", consoleReporterDefinition);
-			ConsoleReporter consoleReporter = consoleReporterDefinition.buildReporter(this.metricRegistry);
-			this.consoleReporters.add(consoleReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", consoleReporter);
-			consoleReporter.start(consoleReporterDefinition.getPeriodDuration(), consoleReporterDefinition.getPeriodDurationUnit());
-		} else if (reporterDefinition instanceof GraphiteReporterDefinition) {
-			GraphiteReporterDefinition graphiteReporterDefinition = ((GraphiteReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding GraphiteReporterDefinition: {}", graphiteReporterDefinition);
-			GraphiteReporter graphiteReporter = graphiteReporterDefinition.buildReporter(this.metricRegistry);
-			this.graphiteReporters.add(graphiteReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", graphiteReporter);
-			graphiteReporter.start(graphiteReporterDefinition.getPeriodDuration(), graphiteReporterDefinition.getPeriodDurationUnit());
-		} else if (reporterDefinition instanceof Slf4jReporterDefinition) {
-			Slf4jReporterDefinition slf4jReporterDefinition = ((Slf4jReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding Slf4jReporterDefinition: {}", slf4jReporterDefinition);
-			Slf4jReporter slf4jReporter = slf4jReporterDefinition.buildReporter(this.metricRegistry);
-			this.slf4jReporters.add(slf4jReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", slf4jReporter);
-			slf4jReporter.start(slf4jReporterDefinition.getPeriodDuration(), slf4jReporterDefinition.getPeriodDurationUnit());
-		} else if (reporterDefinition instanceof CsvReporterDefinition) {
-			CsvReporterDefinition csvReporterDefinition = ((CsvReporterDefinition) reporterDefinition).getReporterDefinitionWithDefaults();
-			LOGGER.info(MARKER, "adding CsvjReporterDefinition: {}", csvReporterDefinition);
-			CsvReporter csvReporter = csvReporterDefinition.buildReporter(this.metricRegistry);
-			this.csvReporters.add(csvReporter);
-			LOGGER.info(MARKER, "starting reporter: {}", csvReporter);
-			csvReporter.start(csvReporterDefinition.getPeriodDuration(), csvReporterDefinition.getPeriodDurationUnit());
-		} else {
-			LOGGER.warn(MARKER, "unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
-		}
-	}
-
-	/**
-	 * @param deltaInNanos
-	 */
-	private void updateAllIntervals(final long deltaInNanos) {
-		for (Entry<TimeUnit, Histogram> entry : this.intervals.entrySet()) {
-			Histogram histogram = entry.getValue();
-			long delta = entry.getKey().convert(deltaInNanos, TimeUnit.NANOSECONDS);
-			LOGGER.trace("delta in {}: {}", entry.getKey(), delta);
-			LOGGER.trace("histogram: {}", histogram);
-			LOGGER.trace("99th before: {}", histogram.getSnapshot().get99thPercentile());
-			histogram.update(delta);
-			LOGGER.trace("99th after: {}", histogram.getSnapshot().get99thPercentile());
-		}
+	private synchronized MetricGroup initializeMetricGroup(final String baseName) throws Exception {
+		return initializeMetricGroup(this.name, null);
 	}
 
 	/**
@@ -675,49 +592,11 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	@Override
 	protected void doStart() throws Exception {
 		LOGGER.debug(MARKER, "doStart()");
-
-		Map<String, ReporterDefinition> componentReporterDefinitions = this.metricsComponent.getReporterDefinitions();
-		Map<String, ReporterDefinition> leftoverReporterDefinitions = new HashMap<String, ReporterDefinition>();
-		leftoverReporterDefinitions.putAll(componentReporterDefinitions);
-
-		// check component definitions for defaults
-		for (ReporterDefinition reporterDefinition : this.reporterDefinitions) {
-			String reporterDefinitionName = reporterDefinition.getName();
-			ReporterDefinition componentReporterDefinition = leftoverReporterDefinitions.get(reporterDefinitionName);
-			if (componentReporterDefinition != null) {
-				ReporterDefinition combinedReporterDefinition = componentReporterDefinition;
-				combinedReporterDefinition = componentReporterDefinition.applyAsOverride(reporterDefinition);
-				registerAndStart(combinedReporterDefinition);
-				leftoverReporterDefinitions.remove(reporterDefinitionName);
-			} else {
-				registerAndStart(reporterDefinition);
-			}
-		}
-		// start the remaining definitions
-		for (Entry<String, ReporterDefinition> leftoverReporterDefinitionEntry : leftoverReporterDefinitions.entrySet()) {
-			ReporterDefinition reporterDefinition = leftoverReporterDefinitionEntry.getValue();
-			registerAndStart(reporterDefinition);
-		}
 	}
 
 	@Override
 	protected void doStop() throws Exception {
 		LOGGER.debug(MARKER, "doStop()");
-		for (JmxReporter jmxReporter : this.jmxReporters) {
-			jmxReporter.stop();
-		}
-		for (ConsoleReporter consoleReporter : this.consoleReporters) {
-			consoleReporter.stop();
-		}
-		for (GraphiteReporter graphiteReporter : this.graphiteReporters) {
-			graphiteReporter.stop();
-		}
-		for (Slf4jReporter slf4jReporter : this.slf4jReporters) {
-			slf4jReporter.stop();
-		}
-		for (CsvReporter csvReporter : this.csvReporters) {
-			csvReporter.stop();
-		}
 	}
 
 	@Override
