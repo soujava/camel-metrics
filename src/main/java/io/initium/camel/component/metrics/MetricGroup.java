@@ -408,6 +408,7 @@ public class MetricGroup extends ServiceSupport {
 	 *
 	 */
 	private void startReporters() {
+		boolean oneReporterHasBeenStarted = false;
 		Map<String, ReporterDefinition> leftoverReporterDefinitions = new HashMap<String, ReporterDefinition>();
 		leftoverReporterDefinitions.putAll(this.componentReporterDefinitions);
 
@@ -419,15 +420,21 @@ public class MetricGroup extends ServiceSupport {
 				ReporterDefinition combinedReporterDefinition = componentReporterDefinition;
 				combinedReporterDefinition = componentReporterDefinition.applyAsOverride(reporterDefinition);
 				registerAndStart(combinedReporterDefinition);
+				oneReporterHasBeenStarted = true;
 				leftoverReporterDefinitions.remove(reporterDefinitionName);
 			} else {
 				registerAndStart(reporterDefinition);
+				oneReporterHasBeenStarted = true;
 			}
 		}
 		// start the remaining definitions
 		for (Entry<String, ReporterDefinition> leftoverReporterDefinitionEntry : leftoverReporterDefinitions.entrySet()) {
 			ReporterDefinition reporterDefinition = leftoverReporterDefinitionEntry.getValue();
 			registerAndStart(reporterDefinition);
+			oneReporterHasBeenStarted = true;
+		}
+		if (!oneReporterHasBeenStarted) {
+			registerAndStart(Slf4jReporterDefinition.getDefaultReporter());
 		}
 	}
 
