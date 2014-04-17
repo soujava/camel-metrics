@@ -28,8 +28,10 @@ import org.apache.camel.Expression;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.RuntimeCamelException;
+import org.apache.camel.api.management.ManagedResource;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
+import org.apache.camel.spi.UriParam;
 import org.apache.camel.util.EndpointHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
@@ -61,6 +64,7 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
  * @since 2014-02-19
  */
 @SuppressWarnings({"rawtypes"})
+@ManagedResource(description = "Managed MetricsEndpoint")
 public class MetricsEndpoint extends DefaultEndpoint {
 
 	// TODO remove suppress "rawtypes", "unchecked" warnings by refactoring ReporterDefinition
@@ -90,33 +94,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	private final Timer						internalTimerStop		= null;
 	// for timer metric
 	private final Timer						timer					= null;
+	@UriParam
 	private String							timingName				= "timing";
 	private String							timingActionName		= null;
-
 	private TimingAction					timingAction			= TimingAction.NOOP;
 	// for expression based counter metric
 	private String							counterName				= "count";
-
 	private Expression						counterExpression		= null;
 	// for expression based histogram metric
 	private String							histogramName			= "histogram";
-
 	private Expression						histogramExpression		= null;
 	// for expression based gauge metric
 	private String							gaugeName				= "gauge";
 	private Expression						gaugeExpression			= null;
 	private long							gaugeCacheDuration		= 10;
-
 	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
 	// for reporters
-	private static final Gson				GSON					= new Gson();
+	private static final Gson				gson;
 	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
 	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
 	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
 	private static final Type				SLF4J_REPORTERS_TYPE	= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
 	private static final Type				CSV_REPORTERS_TYPE		= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
-
 	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
+
+	static {
+		GsonBuilder gsonBuilder = new GsonBuilder();
+		gsonBuilder.registerTypeAdapter(TimeUnit.class, new TimeUnitConverter());
+		gson = gsonBuilder.create();
+	}
 
 	/**
 	 * @param uri
@@ -373,7 +379,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the consoleReporters to set
 	 */
 	public void setConsoleReporters(final String consoleReporters) {
-		List<ConsoleReporterDefinition> consoleReporterDefinitions = GSON.fromJson(consoleReporters, CONSOLE_REPORTERS_TYPE);
+		List<ConsoleReporterDefinition> consoleReporterDefinitions = gson.fromJson(consoleReporters, CONSOLE_REPORTERS_TYPE);
 		for (ConsoleReporterDefinition consoleReporterDefinition : consoleReporterDefinitions) {
 			this.reporterDefinitions.add(consoleReporterDefinition);
 		}
@@ -400,7 +406,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the csvReporters to set
 	 */
 	public void setCsvReporters(final String csvReporters) {
-		List<CsvReporterDefinition> csvReporterDefinitions = GSON.fromJson(csvReporters, CSV_REPORTERS_TYPE);
+		List<CsvReporterDefinition> csvReporterDefinitions = gson.fromJson(csvReporters, CSV_REPORTERS_TYPE);
 		for (CsvReporterDefinition csvReporterDefinition : csvReporterDefinitions) {
 			this.reporterDefinitions.add(csvReporterDefinition);
 		}
@@ -451,7 +457,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the graphiteReporters to set
 	 */
 	public void setGraphiteReporters(final String graphiteReporters) {
-		List<GraphiteReporterDefinition> graphiteReporterDefinitions = GSON.fromJson(graphiteReporters, GRAPHITE_REPORTERS_TYPE);
+		List<GraphiteReporterDefinition> graphiteReporterDefinitions = gson.fromJson(graphiteReporters, GRAPHITE_REPORTERS_TYPE);
 		for (GraphiteReporterDefinition graphiteReporterDefinition : graphiteReporterDefinitions) {
 			this.reporterDefinitions.add(graphiteReporterDefinition);
 		}
@@ -486,7 +492,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the jmxReporters to set
 	 */
 	public void setJmxReporters(final String jmxReporters) {
-		List<JmxReporterDefinition> jmxReporterDefinitions = GSON.fromJson(jmxReporters, JMX_REPORTERS_TYPE);
+		List<JmxReporterDefinition> jmxReporterDefinitions = gson.fromJson(jmxReporters, JMX_REPORTERS_TYPE);
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
 			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
@@ -497,7 +503,7 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the slf4jReporters to set
 	 */
 	public void setSlf4jReporters(final String slf4jReporters) {
-		List<Slf4jReporterDefinition> slf4jReporterDefinitions = GSON.fromJson(slf4jReporters, SLF4J_REPORTERS_TYPE);
+		List<Slf4jReporterDefinition> slf4jReporterDefinitions = gson.fromJson(slf4jReporters, SLF4J_REPORTERS_TYPE);
 		for (Slf4jReporterDefinition slf4jReporterDefinition : slf4jReporterDefinitions) {
 			this.reporterDefinitions.add(slf4jReporterDefinition);
 		}
