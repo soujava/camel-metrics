@@ -51,7 +51,7 @@ public class MetricsComponent extends UriEndpointComponent {
 	private static final Logger						LOGGER				= LoggerFactory.getLogger(SELF);
 
 	// constants
-	public static final Marker						MARKER				= MarkerFactory.getMarker("METRICS");
+	public static final Marker						MARKER				= MarkerFactory.getMarker("metrics");
 	public static final String						DEFAULT_JMX_DOMAIN	= "metrics";
 	public static final String						TIMING_MAP_NAME		= DEFAULT_JMX_DOMAIN + ".TimingMap";
 
