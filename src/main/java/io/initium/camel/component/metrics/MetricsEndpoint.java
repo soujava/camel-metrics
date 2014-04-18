@@ -135,7 +135,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	 */
 	public MetricsEndpoint(final String uri, final MetricsComponent metricsComponent, final String name, final Map<String, Object> parameters) throws Exception {
 		super(uri, metricsComponent);
-		LOGGER.debug(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
+		LOGGER.info(MARKER, "MetricsEndpoint({},{},{})", uri, metricsComponent, parameters);
 		this.metricsComponent = metricsComponent;
 		this.name = name;
 		warnIfTimingStopIsUsedWithOtherParameters(parameters);
@@ -145,7 +145,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 				LOGGER.debug(MARKER, "skipping initialization, timingAction={}", this.timingAction);
 				break;
 			default:
-				this.metricsComponent.registerName(this.name);
 				initializeMetricGroup(this.name);
 				break;
 		}
@@ -273,6 +272,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		if (metricGroup != null) {
 			return metricGroup;
 		}
+		this.metricsComponent.registerName(this.name);
 		metricGroup = new MetricGroup(this, baseName, infixName);
 		// timer
 		if (this.timingAction == TimingAction.START) {
