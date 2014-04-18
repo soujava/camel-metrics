@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
+import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
@@ -52,6 +53,8 @@ import io.initium.common.util.MetricUtils;
 import io.initium.common.util.OptionHelper;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
+import static io.initium.common.util.GsonHelper.CACHED_GAUGE_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.CACHED_GAUGE_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.CONSOLE_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.CONSOLE_REPORTER_TYPE;
 import static io.initium.common.util.GsonHelper.COUNTER_DEFINITIONS_TYPE;
@@ -116,12 +119,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	private List<HistogramDefinition>		histogramDefinitions;
 	private List<CounterDefinition>			counterDefinitions;
 	private List<GaugeDefinition>			gaugeDefinitions;
-
-	// // for expression based gauge metric
-	// private String gaugeName = "gauge";
-	// private Expression gaugeExpression = null;
-	// private long gaugeCacheDuration = 10;
-	// private TimeUnit gaugeCacheDurationUnit = TimeUnit.SECONDS;
+	private List<CachedGaugeDefinition>		cachedGaugeDefinitions;
 
 	// for reporters
 	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
@@ -287,6 +285,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
+		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
 
 		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
 		getCamelContext().addService(metricGroup);
@@ -319,6 +318,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
+		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
 
 		//
 		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
@@ -381,6 +381,33 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			return metricGroup;
 		}
 		return initializeMetricGroup(baseName, infixName, exchange);
+	}
+
+	/**
+	 * @param cachedGauges
+	 *            the cachedGauges to set
+	 */
+	public void setCachedGauge(final String cachedGauges) {
+		setCachedGauges(cachedGauges);
+	}
+
+	/**
+	 * @param cachedGauges
+	 *            the cachedGauges to set
+	 */
+	public void setCachedGauges(final String cachedGauges) {
+		List<CachedGaugeDefinition> cacheGaugeDefinitions;
+		try {
+			cacheGaugeDefinitions = GSON.fromJson(cachedGauges, CACHED_GAUGE_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			CachedGaugeDefinition cachedGaugeDefinition = GSON.fromJson(cachedGauges, CACHED_GAUGE_DEFINITION_TYPE);
+			cacheGaugeDefinitions = new ArrayList<CachedGaugeDefinition>();
+			cacheGaugeDefinitions.add(cachedGaugeDefinition);
+		}
+		for (CachedGaugeDefinition cachedGaugeDefinition : cacheGaugeDefinitions) {
+			cachedGaugeDefinition.createExpression(getCamelContext());
+		}
+		this.cachedGaugeDefinitions = cacheGaugeDefinitions;
 	}
 
 	/**

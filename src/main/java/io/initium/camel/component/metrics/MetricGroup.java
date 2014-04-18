@@ -46,6 +46,7 @@ import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.GraphiteReporter;
 
+import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
@@ -71,46 +72,47 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 public class MetricGroup extends ServiceSupport {
 
 	// logging
-	private static final String							SELF								= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger							LOGGER								= LoggerFactory.getLogger(SELF);
+	private static final String								SELF								= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger								LOGGER								= LoggerFactory.getLogger(SELF);
 
 	// defaults
-	private static final List<TimeUnit>					DEFAULT_SINCE_TIME_UNIT_VALUES		= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
-	private static final List<TimeUnit>					DEFAULT_INTERVAL_TIME_UNIT_VALUES	= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
+	private static final List<TimeUnit>						DEFAULT_SINCE_TIME_UNIT_VALUES		= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
+	private static final List<TimeUnit>						DEFAULT_INTERVAL_TIME_UNIT_VALUES	= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
 
 	// fields
-	private MetricsEndpoint								metricsEndpoint;
-	private final MetricRegistry						metricRegistry;
+	private MetricsEndpoint									metricsEndpoint;
+	private final MetricRegistry							metricRegistry;
+	private String											baseName;
+	private String											infixName;
+	private String											fullName;
+	private Exchange										creatingExchange;
 
 	// default metrics
-	private final Meter									exchangeRate;
-	private long										lastExchangeTime					= System.nanoTime();
-	private Exchange									lastExchange;
-	private boolean										haveProcessedAtLeastOneExchange		= false;
-	private final Map<TimeUnit, Histogram>				intervals							= new HashMap<TimeUnit, Histogram>();
-	private Timer										timer;
-	private TimerDefinition								timerDefinition;
-	private final Set<Gauge>							sinceGauges							= new HashSet<Gauge>();
+	private final Meter										exchangeRate;
+	private long											lastExchangeTime					= System.nanoTime();
+	private Exchange										lastExchange;
+	private boolean											haveProcessedAtLeastOneExchange		= false;
+	private final Map<TimeUnit, Histogram>					intervals							= new HashMap<TimeUnit, Histogram>();
+	private Timer											timer;
+	private TimerDefinition									timerDefinition;
+	private final Set<Gauge>								sinceGauges							= new HashSet<Gauge>();
 
 	// for expression based metrics
-	// TODO check this
-	private final Map<HistogramDefinition, Histogram>	histograms							= new HashMap<HistogramDefinition, Histogram>();
-	private final Map<CounterDefinition, Counter>		counters							= new HashMap<CounterDefinition, Counter>();
-	private final Map<GaugeDefinition, Gauge>			gauges								= new HashMap<GaugeDefinition, Gauge>();
+	private final Map<HistogramDefinition, Histogram>		histograms							= new HashMap<HistogramDefinition, Histogram>();
+	private final Map<CounterDefinition, Counter>			counters							= new HashMap<CounterDefinition, Counter>();
+	private final Map<GaugeDefinition, Gauge>				gauges								= new HashMap<GaugeDefinition, Gauge>();
+	private final Map<CachedGaugeDefinition, CachedGauge>	cachedGauges						= new HashMap<CachedGaugeDefinition, CachedGauge>();
 
-	// reporters
-	private final List<JmxReporter>						jmxReporters						= new ArrayList<JmxReporter>();
-	private final List<ConsoleReporter>					consoleReporters					= new ArrayList<ConsoleReporter>();
-	private final List<GraphiteReporter>				graphiteReporters					= new ArrayList<GraphiteReporter>();
-	private final List<Slf4jReporter>					slf4jReporters						= new ArrayList<Slf4jReporter>();
-	private final List<CsvReporter>						csvReporters						= new ArrayList<CsvReporter>();
-	private final Map<String, ReporterDefinition>		componentReporterDefinitions;
-	private List<ReporterDefinition>					reporterDefinitions;
-	private String										baseName;
-	private String										infixName;
-	private String										fullName;
-	private Exchange									creatingExchange;
-	private CachedGauge									customGauge;
+	// reporter definitions
+	private final Map<String, ReporterDefinition>			componentReporterDefinitions;
+	private List<ReporterDefinition>						reporterDefinitions;
+
+	// active reporters
+	private final List<JmxReporter>							jmxReporters						= new ArrayList<JmxReporter>();
+	private final List<ConsoleReporter>						consoleReporters					= new ArrayList<ConsoleReporter>();
+	private final List<GraphiteReporter>					graphiteReporters					= new ArrayList<GraphiteReporter>();
+	private final List<Slf4jReporter>						slf4jReporters						= new ArrayList<Slf4jReporter>();
+	private final List<CsvReporter>							csvReporters						= new ArrayList<CsvReporter>();
 
 	/**
 	 * @param metricsEndpoint
@@ -178,6 +180,42 @@ public class MetricGroup extends ServiceSupport {
 	public MetricGroup(final MetricsEndpoint metricsEndpoint, final String baseName, final String infixName, final Exchange creatingExchange) {
 		this(metricsEndpoint, baseName, infixName);
 		this.creatingExchange = creatingExchange;
+	}
+
+	/**
+	 * @param cachedGaugeDefinition
+	 */
+	public void addCachedGaugeDefinition(final CachedGaugeDefinition cachedGaugeDefinition) {
+		if (cachedGaugeDefinition != null) {
+			String subName = cachedGaugeDefinition.getName();
+			if (subName == null) {
+				subName = CachedGaugeDefinition.getNextDefaultName();
+			}
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
+			LOGGER.debug(MARKER, "enabling cached gauge metric: {} based on definition: {}", lclName, cachedGaugeDefinition);
+			CachedGauge<Object> cachedGauge = new CachedGauge<Object>(cachedGaugeDefinition.getDuration(), cachedGaugeDefinition.getDurationUnit()) {
+				@Override
+				protected Object loadValue() {
+					if (MetricGroup.this.lastExchange != null) {
+						return cachedGaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+					} else {
+						return null;
+					}
+				}
+			};
+			this.cachedGauges.put(cachedGaugeDefinition, cachedGauge);
+		}
+	}
+
+	/**
+	 * @param cachedGaugeDefinitions
+	 */
+	public void addCachedGaugeDefinitions(final List<CachedGaugeDefinition> cachedGaugeDefinitions) {
+		if (cachedGaugeDefinitions != null) {
+			for (CachedGaugeDefinition cachedGaugeDefinition : cachedGaugeDefinitions) {
+				addCachedGaugeDefinition(cachedGaugeDefinition);
+			}
+		}
 	}
 
 	/**
@@ -287,17 +325,19 @@ public class MetricGroup extends ServiceSupport {
 	public boolean contains(final Metric metric) {
 		if (metric == this.exchangeRate) {
 			return true;
+		} else if (this.intervals.values().contains(metric)) {
+			return true;
+		} else if (this.sinceGauges.contains(metric)) {
+			return true;
 		} else if (metric == this.timer) {
 			return true;
 		} else if (this.counters.values().contains(metric)) {
 			return true;
 		} else if (this.histograms.values().contains(metric)) {
 			return true;
-		} else if (metric == this.customGauge) {
+		} else if (this.gauges.values().contains(metric)) {
 			return true;
-		} else if (this.intervals.values().contains(metric)) {
-			return true;
-		} else if (this.sinceGauges.contains(metric)) {
+		} else if (this.cachedGauges.values().contains(metric)) {
 			return true;
 		}
 		return false;
@@ -553,5 +593,4 @@ public class MetricGroup extends ServiceSupport {
 		// stop and clear reporters
 		stopReporters();
 	}
-
 }

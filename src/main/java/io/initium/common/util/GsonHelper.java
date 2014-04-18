@@ -24,6 +24,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import io.initium.camel.component.metrics.TimeUnitConverter;
+import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
@@ -41,7 +42,7 @@ import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefin
  */
 public final class GsonHelper {
 
-	private static final String	SELF						= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final String	SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
 
 	public static final Gson	GSON;
 	static {
@@ -51,32 +52,35 @@ public final class GsonHelper {
 		GSON = gsonBuilder.create();
 	}
 
-	public static final Type	JMX_REPORTERS_TYPE			= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
-	public static final Type	JMX_REPORTER_TYPE			= new TypeToken<JmxReporterDefinition>() {}.getType();
+	public static final Type	JMX_REPORTERS_TYPE				= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
+	public static final Type	JMX_REPORTER_TYPE				= new TypeToken<JmxReporterDefinition>() {}.getType();
 
-	public static final Type	CONSOLE_REPORTERS_TYPE		= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
-	public static final Type	CONSOLE_REPORTER_TYPE		= new TypeToken<ConsoleReporterDefinition>() {}.getType();
+	public static final Type	CONSOLE_REPORTERS_TYPE			= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
+	public static final Type	CONSOLE_REPORTER_TYPE			= new TypeToken<ConsoleReporterDefinition>() {}.getType();
 
-	public static final Type	GRAPHITE_REPORTERS_TYPE		= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
-	public static final Type	GRAPHITE_REPORTER_TYPE		= new TypeToken<GraphiteReporterDefinition>() {}.getType();
+	public static final Type	GRAPHITE_REPORTERS_TYPE			= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
+	public static final Type	GRAPHITE_REPORTER_TYPE			= new TypeToken<GraphiteReporterDefinition>() {}.getType();
 
-	public static final Type	SLF4J_REPORTERS_TYPE		= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
-	public static final Type	SLF4J_REPORTER_TYPE			= new TypeToken<Slf4jReporterDefinition>() {}.getType();
+	public static final Type	SLF4J_REPORTERS_TYPE			= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
+	public static final Type	SLF4J_REPORTER_TYPE				= new TypeToken<Slf4jReporterDefinition>() {}.getType();
 
-	public static final Type	CSV_REPORTERS_TYPE			= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
-	public static final Type	CSV_REPORTER_TYPE			= new TypeToken<CsvReporterDefinition>() {}.getType();
+	public static final Type	CSV_REPORTERS_TYPE				= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
+	public static final Type	CSV_REPORTER_TYPE				= new TypeToken<CsvReporterDefinition>() {}.getType();
 
-	public static final Type	TIME_UNITS_TYPE				= new TypeToken<Collection<TimeUnit>>() {}.getType();
-	public static final Type	TIME_UNIT_TYPE				= new TypeToken<TimeUnit>() {}.getType();
+	public static final Type	TIME_UNITS_TYPE					= new TypeToken<Collection<TimeUnit>>() {}.getType();
+	public static final Type	TIME_UNIT_TYPE					= new TypeToken<TimeUnit>() {}.getType();
 
-	public static final Type	HISTOGRAM_DEFINITIONS_TYPE	= new TypeToken<Collection<HistogramDefinition>>() {}.getType();
-	public static final Type	HISTOGRAM_DEFINITION_TYPE	= new TypeToken<HistogramDefinition>() {}.getType();
+	public static final Type	HISTOGRAM_DEFINITIONS_TYPE		= new TypeToken<Collection<HistogramDefinition>>() {}.getType();
+	public static final Type	HISTOGRAM_DEFINITION_TYPE		= new TypeToken<HistogramDefinition>() {}.getType();
 
-	public static final Type	COUNTER_DEFINITIONS_TYPE	= new TypeToken<Collection<CounterDefinition>>() {}.getType();
-	public static final Type	COUNTER_DEFINITION_TYPE		= new TypeToken<CounterDefinition>() {}.getType();
+	public static final Type	COUNTER_DEFINITIONS_TYPE		= new TypeToken<Collection<CounterDefinition>>() {}.getType();
+	public static final Type	COUNTER_DEFINITION_TYPE			= new TypeToken<CounterDefinition>() {}.getType();
 
-	public static final Type	GAUGE_DEFINITIONS_TYPE		= new TypeToken<Collection<GaugeDefinition>>() {}.getType();
-	public static final Type	GAUGE_DEFINITION_TYPE		= new TypeToken<GaugeDefinition>() {}.getType();
+	public static final Type	GAUGE_DEFINITIONS_TYPE			= new TypeToken<Collection<GaugeDefinition>>() {}.getType();
+	public static final Type	GAUGE_DEFINITION_TYPE			= new TypeToken<GaugeDefinition>() {}.getType();
+
+	public static final Type	CACHED_GAUGE_DEFINITIONS_TYPE	= new TypeToken<Collection<CachedGaugeDefinition>>() {}.getType();
+	public static final Type	CACHED_GAUGE_DEFINITION_TYPE	= new TypeToken<CachedGaugeDefinition>() {}.getType();
 
 	/**
 	 * This class is not intended to ever be instantiated.

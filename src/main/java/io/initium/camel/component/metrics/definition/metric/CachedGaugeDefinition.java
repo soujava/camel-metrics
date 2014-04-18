@@ -17,50 +17,108 @@ package io.initium.camel.component.metrics.definition.metric;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.CamelContext;
+import org.apache.camel.spi.Language;
+
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.2
- * @since 2014-02-19
+ * @since 2014-04-17
  */
-public class CachedGaugeDefinition extends GaugeDefinition {
+public class CachedGaugeDefinition extends ExpressionMetricDefinition {
 
 	// constants
+	private static final String		DEFAULT_NAME_BASE			= "cachedGauge";
+	private static long				DEFAULT_NAME_BASE_INDEX		= 0;
+	private static final String		DEFAULT_VALUE				= "1";
 	private static final TimeUnit	DEFAULT_CACHE_DURATION_UNIT	= TimeUnit.SECONDS;
 	private static final int		DEFAULT_CACHE_DURATION		= 10;
 
+	/**
+	 * @return
+	 */
+	public static synchronized String getNextDefaultName() {
+		DEFAULT_NAME_BASE_INDEX++;
+		return DEFAULT_NAME_BASE + DEFAULT_NAME_BASE_INDEX;
+	}
+
 	// fields
-	private long					cacheDuration				= DEFAULT_CACHE_DURATION;
-	private TimeUnit				cacheDurationUnit			= DEFAULT_CACHE_DURATION_UNIT;
+	private String		value			= DEFAULT_VALUE;
+	private long		duration		= DEFAULT_CACHE_DURATION;
+	private TimeUnit	durationUnit	= DEFAULT_CACHE_DURATION_UNIT;
 
 	/**
-	 * @return the cacheDuration
+	 * @param camelContext
 	 */
-	public long getCacheDuration() {
-		return this.cacheDuration;
+	public void createExpression(final CamelContext camelContext) {
+		Language language;
+		if (this.value.contains("$")) {
+			language = camelContext.resolveLanguage("file");
+		} else {
+			language = camelContext.resolveLanguage("constant");
+		}
+		setExpression(language.createExpression(this.value));
 	}
 
 	/**
-	 * @return the cacheDurationUnit
+	 * @return the duration
 	 */
-	public TimeUnit getCacheDurationUnit() {
-		return this.cacheDurationUnit;
+	public long getDuration() {
+		return this.duration;
 	}
 
 	/**
-	 * @param cacheDuration
-	 *            the cacheDuration to set
+	 * @return the durationUnit
 	 */
-	public void setCacheDuration(final long cacheDuration) {
-		this.cacheDuration = cacheDuration;
+	public TimeUnit getDurationUnit() {
+		return this.durationUnit;
 	}
 
 	/**
-	 * @param cacheDurationUnit
-	 *            the cacheDurationUnit to set
+	 * @return the value
 	 */
-	public void setCacheDurationUnit(final TimeUnit cacheDurationUnit) {
-		this.cacheDurationUnit = cacheDurationUnit;
+	public String getValue() {
+		return this.value;
+	}
+
+	/**
+	 * @param duration
+	 *            the duration to set
+	 */
+	public void setDuration(final long duration) {
+		this.duration = duration;
+	}
+
+	/**
+	 * @param durationUnit
+	 *            the durationUnit to set
+	 */
+	public void setDurationUnit(final TimeUnit durationUnit) {
+		this.durationUnit = durationUnit;
+	}
+
+	/**
+	 * @param value
+	 *            the value to set
+	 */
+	public void setValue(final String value) {
+		this.value = value;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("CachedGaugeDefinition [value=");
+		builder.append(this.value);
+		builder.append(", duration=");
+		builder.append(this.duration);
+		builder.append(", durationUnit=");
+		builder.append(this.durationUnit);
+		builder.append(", getName()=");
+		builder.append(getName());
+		builder.append("]");
+		return builder.toString();
 	}
 
 }
