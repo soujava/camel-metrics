@@ -42,7 +42,6 @@ import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener
 @SuppressWarnings("rawtypes")
 public class MetricsComponent extends UriEndpointComponent {
 
-	// TODO for v1.3.0 add trace exchange property for each pass of component and way to report
 	// TODO error out on some required fields for reporters
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
 	// TODO support ReporterDefinitions that support setting Objects rather than names of objects

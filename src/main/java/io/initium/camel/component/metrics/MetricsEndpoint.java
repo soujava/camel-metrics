@@ -335,7 +335,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 
 	@Override
 	public boolean isMultipleConsumersSupported() {
-		// TODO Verify this is right
 		return true;
 	}
 
