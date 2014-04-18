@@ -15,21 +15,14 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
-
 public class MetricsTest extends CamelTestSupport {
-
-	private static Random	random	= new Random();
 
 	@Override
 	public boolean isUseRouteBuilder() {
@@ -38,95 +31,51 @@ public class MetricsTest extends CamelTestSupport {
 
 	@Test
 	@Ignore
-	public void theFirstTest() throws Exception {
-		this.context.addRoutes(new RouteBuilder() {
-			@Override
-			public void configure() throws Exception {
-				Processor myRandomProcessor = new Processor() {
-					@Override
-					public void process(final Exchange exchange) throws Exception {
-						StringBuilder stringBuilder = new StringBuilder();
-						int size = random.nextInt(10);
-						for (int i = 1; i <= size; i++) {
-							stringBuilder.append(size);
-						}
-						exchange.getIn().setBody(stringBuilder.toString());
-					}
-				};
-				from("timer://namedTimer?period=100").to("metrics://sampleWithoutTiming?jmxDomain=context01");
-				from("timer://namedTimer?period=200").to("metrics://sampleWithoutTiming?jmxDomain=context02").delay(1000);
-				from("timer://namedTimer?period=100").to("metrics://sampleWithTiming?jmxDomain=context02&timing=start").delay(1000).to("metrics://sampleWithTiming?timing=stop");
-				from("timer://namedTimer?period=100").to("metrics://sampleWithCounter1?jmxDomain=context03&counterDelta=3&counterName=MyName");
-				from("timer://namedTimer?period=100").setHeader("testCounterDelta", simple("2")).to("metrics://sampleWithCounter2?counterDelta=${in.header.testCounterDelta}");
-				from("timer://namedTimer?period=100").to("metrics://sampleWithHistogram1?histogramValue=3");
-				from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithHistogram2?histogramValue=${in.body.length()}");
-				from("timer://namedTimer?period=100").to("metrics://sampleWithGauge1?gaugeValue=sdsdds");
-				from("timer://namedTimer?period=100").process(myRandomProcessor).to("metrics://sampleWithGauge2?gaugeValue=${in.body}");
-			}
-		});
-		this.context.start();
-		while (true) {
-			TimeUnit.MINUTES.sleep(1);
-		}
-	}
-
-	@Test
-	@Ignore
-	public void theSecondTest() throws Exception {
-		this.context.addRoutes(new RouteBuilder() {
-			@Override
-			public void configure() throws Exception {
-				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context1&enableInternalTimer=true");
-				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context2&durationUnit=seConds");
-				from("timer://myTestTimer?period=100").to("metrics://myMetric01?jmxDomain=domain3a&jmxRateUnit=MINUTES").to("metrics://myMetric02?jmxDomain=comain3b&jmxRateUnit=SECONDS");
-				// from("timer://namedTimer?period=1000").to("metrics://sample?jmxDomain=context3&histogramValue=1");
-				// from("timer://namedTimer?period=100").to("metrics://sample?jmxDomain=context4&histogramValue=1&histogramReservoir=slidingTimewindow&slidingTimeWindowDuration=10&slidingTimeWindowDurationUnit=seconds");
-			}
-		});
-		this.context.start();
-		while (true) {
-			TimeUnit.MINUTES.sleep(10);
-		}
-
-	}
-
-	@Test
-	@Ignore
 	public void theThirdTest() throws Exception {
-		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
-		jmxReporterDefinition.setDomain("testDomain");
+		// Random random = new Random();
+		// JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
+		// jmxReporterDefinition.setDomain("testDomain");
 		// jmxReporterDefinition.setFilter("^(myMetric01.rate|myMetric01.intervalSeconds)$");
-
 		// ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
 		// consoleReporterDefinition.setPeriodDuration(1);
 		// consoleReporterDefinition.setPeriodDurationUnit(TimeUnit.SECONDS);
-
-		MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
-		this.context.addComponent("metrics", metricsComponent);
+		// MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
+		// this.context.addComponent("metrics", metricsComponent);
 		this.context.addRoutes(new RouteBuilder() {
+
 			@Override
 			public void configure() throws Exception {
-				Processor myRandomProcessor = new Processor() {
-					@Override
-					public void process(final Exchange exchange) throws Exception {
-						StringBuilder stringBuilder = new StringBuilder();
-						int size = random.nextInt(4);
-						for (int i = 1; i <= size; i++) {
-							stringBuilder.append(size);
-						}
-						exchange.getIn().setBody(stringBuilder.toString());
-					}
-				};
+				// final List<String> PROVIDERS = Arrays.asList("ADAC", "GARMIN", "NAVIGON");
+				// final List<String> PROVIDERS_BODY = Arrays.asList("#", "##", "###");
+				// Processor myProcessor = new Processor() {
+				// @Override
+				// public void process(final Exchange exchange) throws Exception {
+				// int index = random.nextInt(PROVIDERS.size());
+				// exchange.getIn().setHeader("providerName", PROVIDERS.get(index));
+				// exchange.getIn().setBody(PROVIDERS_BODY.get(index));
+				// // StringBuilder stringBuilder = new StringBuilder();
+				// // int size = random.nextInt(20) * (index + 1);
+				// // for (int i = 1; i <= size; i++) {
+				// // stringBuilder.append(size);
+				// // }
+				// // exchange.getIn().setBody(stringBuilder.toString());
+				// }
+				// };
 
 				// @formatter:off
 				from("timer://myTestTimer?period=100")
-					//.to("log://io.initium.metrics?showAll=true&multiline=false")
+					//.to("metrics://myMetric01?timing=start&infix=${in.body}")
+					//.to("metrics://yourFirstMetric?sinceTimeUnits=[SECONDS,DAYS]&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					//.to("metrics://yourFirstMetric?histograms=[{name=One,value=2},{value=3}]&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					.to("metrics://yourFirstMetric?jmxReporter={domain=metrics1}")
+					.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
+					.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
+					//.process(myProcessor)
+					//.to("metrics://requests?infix=${header.providerName}&jmxReporters=[{runtimeSimpleDomain='metrics.requests.${header.providerName}'}]")
 					//.to("metrics://myMetric01?enableInternalTimer=true")
-					.process(myRandomProcessor)
-					.to("metrics://myMetric01?infix=${in.body}&jmxReporters=[{domain:metrics,dynamicDomain:'metrics.${in.body}'}]")
 					//.delay(1000)
 					//.to("metrics://myMetric01?timing=stop&infix=${in.body}")
-					//.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]&timing=stop")
+					//.to("metrics://myMetric01?jmxReporters=[{domain:testReplacedDomain}]")
 					;
 				// @formatter:on
 			}
