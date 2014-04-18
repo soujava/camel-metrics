@@ -96,22 +96,22 @@ public class MetricsProducer extends DefaultProducer {
 					stopTimer(exchange);
 					break;
 			}
-			// determine non-standard MetricGroup
-			MetricGroup dynamicMetricGroup = null;
+			// determine runtime MetricGroup
+			MetricGroup runtimeMetricGroup = null;
 			String infixValue = null;
 			if (this.endpoint.getInfixExpression() != null) {
 				infixValue = this.endpoint.getInfixExpression().evaluate(exchange, String.class);
 				String fullMetricGroupName = MetricRegistry.name(this.endpoint.getName(), infixValue);
 				if (!fullMetricGroupName.equalsIgnoreCase(MetricRegistry.name(this.endpoint.getName()))) {
-					dynamicMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName(), infixValue, exchange);
+					runtimeMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName(), infixValue, exchange);
 				}
 			}
-			if (dynamicMetricGroup != null) {
+			if (runtimeMetricGroup != null) {
 				switch (this.endpoint.getTimingAction()) {
 					case START:
-						startTimer(dynamicMetricGroup, infixValue, exchange);
+						startTimer(runtimeMetricGroup, infixValue, exchange);
 					case NOOP:
-						dynamicMetricGroup.mark(exchange);
+						runtimeMetricGroup.mark(exchange);
 						break;
 					case STOP:
 						stopTimer(infixValue, exchange);

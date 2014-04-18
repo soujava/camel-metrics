@@ -37,35 +37,38 @@ import io.initium.camel.component.metrics.MetricGroup;
 public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jReporterDefinition> {
 
 	// fields
-	private static final String		DEFAULT_NAME					= Slf4jReporterDefinition.class.getSimpleName();
-	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
-	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
-	private static final long		DEFAULT_PERIOD_DURATION			= 1;
-	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT	= TimeUnit.MINUTES;
-	private static final String		DEFAULT_FILTER					= null;
-	private static final String		DEFAULT_DYNAMIC_FILTER			= null;
-	private static final String		DEFAULT_LOGGER_NAME				= "metrics";
-	private static final String		DEFAULT_DYNAMIC_LOGGER_NAME		= null;
-	private static final String		DEFAULT_MARKER_NAME				= "metrics";
-	private static final String		DEFAULT_DYNAMIC_MARKER_NAME		= null;
+	private static final String		DEFAULT_NAME						= Slf4jReporterDefinition.class.getSimpleName();
+	private static final TimeUnit	DEFAULT_DURATION_UNIT				= TimeUnit.MILLISECONDS;
+	private static final TimeUnit	DEFAULT_RATE_UNIT					= TimeUnit.SECONDS;
+	private static final long		DEFAULT_PERIOD_DURATION				= 1;
+	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT		= TimeUnit.MINUTES;
+	private static final String		DEFAULT_LOGGER_NAME					= "metrics";
+	private static final String		DEFAULT_RUNTIME_LOGGER_NAME			= null;
+	private static final String		DEFAULT_RUNTIME_SIMPLE_LOGGER_NAME	= null;
+	private static final String		DEFAULT_MARKER_NAME					= "metrics";
+	private static final String		DEFAULT_RUNTIME_MARKER_NAME			= null;
+	private static final String		DEFAULT_RUNTIME_SIMPLE_MARKER_NAME	= null;
 
 	/**
 	 * @return
 	 */
 	public static Slf4jReporterDefinition getDefaultReporter() {
-		Slf4jReporterDefinition slf4jReporterDefinition = new Slf4jReporterDefinition();
-		slf4jReporterDefinition.setName(DEFAULT_NAME);
-		slf4jReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		slf4jReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		slf4jReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
-		slf4jReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
-		slf4jReporterDefinition.setFilter(DEFAULT_FILTER);
-		slf4jReporterDefinition.setLoggerName(DEFAULT_LOGGER_NAME);
-		slf4jReporterDefinition.setMarkerName(DEFAULT_MARKER_NAME);
-		slf4jReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
-		slf4jReporterDefinition.setDynamicLoggerName(DEFAULT_DYNAMIC_LOGGER_NAME);
-		slf4jReporterDefinition.setDynamicMarkerName(DEFAULT_DYNAMIC_MARKER_NAME);
-		return slf4jReporterDefinition;
+		Slf4jReporterDefinition defaultDefinition = new Slf4jReporterDefinition();
+		defaultDefinition.setName(DEFAULT_NAME);
+		defaultDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		defaultDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		defaultDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
+		defaultDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
+		defaultDefinition.setLoggerName(DEFAULT_LOGGER_NAME);
+		defaultDefinition.setRuntimeLoggerName(DEFAULT_RUNTIME_LOGGER_NAME);
+		defaultDefinition.setRuntimeSimpleLoggerName(DEFAULT_RUNTIME_SIMPLE_LOGGER_NAME);
+		defaultDefinition.setMarkerName(DEFAULT_MARKER_NAME);
+		defaultDefinition.setRuntimeMarkerName(DEFAULT_RUNTIME_MARKER_NAME);
+		defaultDefinition.setRuntimeSimpleMarkerName(DEFAULT_RUNTIME_SIMPLE_MARKER_NAME);
+		defaultDefinition.setFilter(DEFAULT_FILTER);
+		defaultDefinition.setRuntimeFilter(DEFAULT_RUNTIME_FILTER);
+		defaultDefinition.setRuntimeSimpleFilter(DEFAULT_RUNTIME_SIMPLE_FILTER);
+		return defaultDefinition;
 	}
 
 	// fields
@@ -75,40 +78,46 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 	private Long		periodDuration;
 	private TimeUnit	periodDurationUnit;
 	private String		loggerName;
+	private String		runtimeLoggerName;
+	private String		runtimeSimpleLoggerName;
 	private String		markerName;
-	private String		filter;
-	private String		dynamicLoggerName;
-	private String		dynamicMarkerName;
-	private String		dynamicFilter;
+	private String		runtimeMarkerName;
+	private String		runtimeSimpleMarkerName;
 
 	@Override
 	public Slf4jReporterDefinition applyAsOverride(final Slf4jReporterDefinition override) {
-		Slf4jReporterDefinition slf4jReporterDefinition = new Slf4jReporterDefinition();
+		Slf4jReporterDefinition combinedDefinition = new Slf4jReporterDefinition();
 		// get current values
-		slf4jReporterDefinition.setName(this.name);
-		slf4jReporterDefinition.setDurationUnit(this.durationUnit);
-		slf4jReporterDefinition.setRateUnit(this.rateUnit);
-		slf4jReporterDefinition.setPeriodDuration(this.periodDuration);
-		slf4jReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
-		slf4jReporterDefinition.setFilter(this.filter);
-		slf4jReporterDefinition.setLoggerName(this.loggerName);
-		slf4jReporterDefinition.setMarkerName(this.markerName);
-		slf4jReporterDefinition.setDynamicFilter(this.dynamicFilter);
-		slf4jReporterDefinition.setDynamicLoggerName(this.dynamicLoggerName);
-		slf4jReporterDefinition.setDynamicMarkerName(this.dynamicMarkerName);
+		combinedDefinition.setName(getName());
+		combinedDefinition.setDurationUnit(getDurationUnit());
+		combinedDefinition.setRateUnit(getRateUnit());
+		combinedDefinition.setPeriodDuration(getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnit(getPeriodDurationUnit());
+		combinedDefinition.setLoggerName(getLoggerName());
+		combinedDefinition.setRuntimeLoggerName(getRuntimeLoggerName());
+		combinedDefinition.setRuntimeSimpleLoggerName(getRuntimeSimpleLoggerName());
+		combinedDefinition.setMarkerName(getMarkerName());
+		combinedDefinition.setRuntimeMarkerName(getRuntimeMarkerName());
+		combinedDefinition.setRuntimeSimpleMarkerName(getRuntimeSimpleMarkerName());
+		combinedDefinition.setFilter(getFilter());
+		combinedDefinition.setRuntimeFilter(getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilter(getRuntimeSimpleFilter());
 		// apply new values
-		slf4jReporterDefinition.setNameIfNotNull(override.getName());
-		slf4jReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		slf4jReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
-		slf4jReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
-		slf4jReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
-		slf4jReporterDefinition.setFilterIfNotNull(override.getFilter());
-		slf4jReporterDefinition.setLoggerNameIfNotNull(override.getLoggerName());
-		slf4jReporterDefinition.setMarkerNameIfNotNull(override.getMarkerName());
-		slf4jReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
-		slf4jReporterDefinition.setDynamicLoggerNameIfNotNull(override.getDynamicLoggerName());
-		slf4jReporterDefinition.setDynamicMarkerNameIfNotNull(override.getDynamicMarkerName());
-		return slf4jReporterDefinition;
+		combinedDefinition.setNameIfNotNull(override.getName());
+		combinedDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		combinedDefinition.setRateUnitIfNotNull(override.getRateUnit());
+		combinedDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
+		combinedDefinition.setLoggerNameIfNotNull(override.getLoggerName());
+		combinedDefinition.setRuntimeLoggerNameIfNotNull(override.getRuntimeLoggerName());
+		combinedDefinition.setRuntimeSimpleLoggerNameIfNotNull(override.getRuntimeSimpleLoggerName());
+		combinedDefinition.setMarkerNameIfNotNull(override.getMarkerName());
+		combinedDefinition.setRuntimeMarkerNameIfNotNull(override.getRuntimeMarkerName());
+		combinedDefinition.setRuntimeSimpleMarkerNameIfNotNull(override.getRuntimeSimpleMarkerName());
+		combinedDefinition.setFilterIfNotNull(override.getFilter());
+		combinedDefinition.setRuntimeFilterIfNotNull(override.getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilterIfNotNull(override.getRuntimeSimpleFilter());
+		return combinedDefinition;
 	}
 
 	/**
@@ -116,32 +125,32 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 	 * @return
 	 */
 	public Slf4jReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
-		Slf4jReporterDefinition slf4jReporterDefinition = getReporterDefinitionWithDefaults();
+		Slf4jReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
-		final String evaluatedLoggerName = creatingExchange == null ? this.loggerName : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
-		final String evaluatedMarkerName = creatingExchange == null ? this.markerName : evaluateExpression(slf4jReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String loggerNameValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String markerNameValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
 
 		// @formatter:off
 		Slf4jReporter slf4jReporter = Slf4jReporter
 				.forRegistry(metricRegistry)
-				.convertDurationsTo(slf4jReporterDefinition.getDurationUnit())
-				.convertRatesTo(slf4jReporterDefinition.getRateUnit())
+				.convertDurationsTo(definitionWithDefaults.getDurationUnit())
+				.convertRatesTo(definitionWithDefaults.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
 						if(!metricGroup.contains(metric)){
 							return false;
 						}
-						if(name==null || evaluatedFilter==null){
+						if(name==null || filterValue==null){
 							return true;
 						}
-						boolean result = name.matches(evaluatedFilter);
+						boolean result = name.matches(filterValue);
 						return result;
 					}
 						})
-				.outputTo(LoggerFactory.getLogger(evaluatedLoggerName))
-				.markWith(MarkerFactory.getMarker(evaluatedMarkerName))
+				.outputTo(LoggerFactory.getLogger(loggerNameValue))
+				.markWith(MarkerFactory.getMarker(markerNameValue))
 				.build();
 		// @formatter:on
 		return slf4jReporter;
@@ -152,34 +161,6 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
-	}
-
-	/**
-	 * @return the dynamicFilter
-	 */
-	public String getDynamicFilter() {
-		return this.dynamicFilter;
-	}
-
-	/**
-	 * @return the dynamicLoggerName
-	 */
-	public String getDynamicLoggerName() {
-		return this.dynamicLoggerName;
-	}
-
-	/**
-	 * @return the dynamicMarkerName
-	 */
-	public String getDynamicMarkerName() {
-		return this.dynamicMarkerName;
-	}
-
-	/**
-	 * @return the filter
-	 */
-	public String getFilter() {
-		return this.filter;
 	}
 
 	/**
@@ -227,77 +208,44 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 		return getDefaultReporter().applyAsOverride(this);
 	}
 
+	/**
+	 * @return the runtimeLoggerName
+	 */
+	public String getRuntimeLoggerName() {
+		return this.runtimeLoggerName;
+	}
+
+	/**
+	 * @return the runtimeMarkerName
+	 */
+	public String getRuntimeMarkerName() {
+		return this.runtimeMarkerName;
+	}
+
+	/**
+	 * @return the runtimeSimpleLoggerName
+	 */
+	public String getRuntimeSimpleLoggerName() {
+		return this.runtimeSimpleLoggerName;
+	}
+
+	/**
+	 * @return the runtimeSimpleMarkerName
+	 */
+	public String getRuntimeSimpleMarkerName() {
+		return this.runtimeSimpleMarkerName;
+	}
+
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
 	}
 
 	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilter(final String dynamicFilter) {
-		this.dynamicFilter = dynamicFilter;
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
-		if (dynamicFilter != null) {
-			setDynamicFilter(dynamicFilter);
-		}
-	}
-
-	/**
-	 * @param dynamicLoggerName
-	 *            the dynamicLoggerName to set
-	 */
-	public void setDynamicLoggerName(final String dynamicLoggerName) {
-		this.dynamicLoggerName = dynamicLoggerName;
-	}
-
-	/**
-	 * @param dynamicLoggerName
-	 *            the dynamicLoggerName to set
-	 */
-	public void setDynamicLoggerNameIfNotNull(final String dynamicLoggerName) {
-		if (dynamicLoggerName != null) {
-			setDynamicLoggerName(dynamicLoggerName);
-		}
-	}
-
-	/**
-	 * @param dynamicMarkerName
-	 *            the dynamicMarkerName to set
-	 */
-	public void setDynamicMarkerName(final String dynamicMarkerName) {
-		this.dynamicMarkerName = dynamicMarkerName;
-	}
-
-	/**
-	 * @param dynamicMarkerName
-	 *            the dynamicMarkerName to set
-	 */
-	public void setDynamicMarkerNameIfNotNull(final String dynamicMarkerName) {
-		if (dynamicMarkerName != null) {
-			setDynamicMarkerName(dynamicMarkerName);
-		}
-	}
-
-	/**
 	 * @param filter
 	 *            the filter to set
 	 */
-	public void setFilter(final String filter) {
-		this.filter = filter;
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
+	@Override
 	public void setFilterIfNotNull(final String filter) {
 		if (filter != null) {
 			setFilter(filter);
@@ -354,10 +302,71 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 		this.rateUnit = rateUnit;
 	}
 
+	/**
+	 * @param runtimeLoggerName
+	 *            the runtimeLoggerName to set
+	 */
+	public void setRuntimeLoggerName(final String runtimeLoggerName) {
+		this.runtimeLoggerName = runtimeLoggerName;
+	}
+
+	/**
+	 * @param runtimeMarkerName
+	 *            the runtimeMarkerName to set
+	 */
+	public void setRuntimeMarkerName(final String runtimeMarkerName) {
+		this.runtimeMarkerName = runtimeMarkerName;
+	}
+
+	/**
+	 * @param runtimeSimpleLoggerName
+	 *            the runtimeSimpleLoggerName to set
+	 */
+	public void setRuntimeSimpleLoggerName(final String runtimeSimpleLoggerName) {
+		this.runtimeSimpleLoggerName = runtimeSimpleLoggerName;
+	}
+
+	/**
+	 * @param runtimeSimpleMarkerName
+	 *            the runtimeSimpleMarkerName to set
+	 */
+	public void setRuntimeSimpleMarkerName(final String runtimeSimpleMarkerName) {
+		this.runtimeSimpleMarkerName = runtimeSimpleMarkerName;
+	}
+
 	@Override
 	public String toString() {
-		return "Slf4jReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", loggerName="
-				+ this.loggerName + ", markerName=" + this.markerName + ", filter=" + this.filter + ", dynamicLoggerName=" + this.dynamicLoggerName + ", dynamicMarkerName=" + this.dynamicMarkerName + ", dynamicFilter=" + this.dynamicFilter + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("Slf4jReporterDefinition [name=");
+		builder.append(this.name);
+		builder.append(", durationUnit=");
+		builder.append(this.durationUnit);
+		builder.append(", rateUnit=");
+		builder.append(this.rateUnit);
+		builder.append(", periodDuration=");
+		builder.append(this.periodDuration);
+		builder.append(", periodDurationUnit=");
+		builder.append(this.periodDurationUnit);
+		builder.append(", loggerName=");
+		builder.append(this.loggerName);
+		builder.append(", runtimeLoggerName=");
+		builder.append(this.runtimeLoggerName);
+		builder.append(", runtimeSimpleLoggerName=");
+		builder.append(this.runtimeSimpleLoggerName);
+		builder.append(", markerName=");
+		builder.append(this.markerName);
+		builder.append(", runtimeMarkerName=");
+		builder.append(this.runtimeMarkerName);
+		builder.append(", runtimeSimpleMarkerName=");
+		builder.append(this.runtimeSimpleMarkerName);
+		builder.append(", getFilter()=");
+		builder.append(getFilter());
+		builder.append(", getRuntimeFilter()=");
+		builder.append(getRuntimeFilter());
+		builder.append(", getRuntimeSimpleFilter()=");
+		builder.append(getRuntimeSimpleFilter());
+		builder.append("]");
+		return builder.toString();
 	}
 
 	/**
@@ -417,6 +426,42 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 	private void setRateUnitIfNotNull(final TimeUnit rateUnit) {
 		if (rateUnit != null) {
 			setRateUnit(rateUnit);
+		}
+	}
+
+	/**
+	 * @param runtimeLoggerName
+	 */
+	private void setRuntimeLoggerNameIfNotNull(final String runtimeLoggerName) {
+		if (runtimeLoggerName != null) {
+			setRuntimeLoggerName(runtimeLoggerName);
+		}
+	}
+
+	/**
+	 * @param runtimeMarkerName
+	 */
+	private void setRuntimeMarkerNameIfNotNull(final String runtimeMarkerName) {
+		if (runtimeMarkerName != null) {
+			setRuntimeMarkerName(runtimeMarkerName);
+		}
+	}
+
+	/**
+	 * @param runtimeSimpleLoggerName
+	 */
+	private void setRuntimeSimpleLoggerNameIfNotNull(final String runtimeSimpleLoggerName) {
+		if (runtimeSimpleLoggerName != null) {
+			setRuntimeSimpleLoggerName(runtimeSimpleLoggerName);
+		}
+	}
+
+	/**
+	 * @param runtimeSimpleMarkerName
+	 */
+	private void setRuntimeSimpleMarkerNameIfNotNull(final String runtimeSimpleMarkerName) {
+		if (runtimeSimpleMarkerName != null) {
+			setRuntimeSimpleMarkerName(runtimeSimpleMarkerName);
 		}
 	}
 

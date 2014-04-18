@@ -35,58 +35,62 @@ import io.initium.camel.component.metrics.MetricGroup;
 public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporterDefinition> {
 
 	// fields
-	private static final String		DEFAULT_NAME			= JmxReporterDefinition.class.getSimpleName();
-	private static final String		DEFAULT_DOMAIN			= "metrics";
-	private static final String		DEFAULT_DYNAMIC_DOMAIN	= null;
-	private static final TimeUnit	DEFAULT_DURATION_UNIT	= TimeUnit.MILLISECONDS;
-	private static final TimeUnit	DEFAULT_RATE_UNIT		= TimeUnit.SECONDS;
-	private static final String		DEFAULT_FILTER			= null;
-	private static final String		DEFAULT_DYNAMIC_FILTER	= null;
+	private static final String		DEFAULT_NAME					= JmxReporterDefinition.class.getSimpleName();
+	private static final TimeUnit	DEFAULT_DURATION_UNIT			= TimeUnit.MILLISECONDS;
+	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
+	private static final String		DEFAULT_DOMAIN					= "metrics";
+	private static final String		DEFAULT_RUNTIME_DOMAIN			= null;
+	private static final String		DEFAULT_RUNTIME_SIMPLE_DOMAIN	= null;
 
 	/**
 	 * @return
 	 */
 	public static JmxReporterDefinition getDefaultReporter() {
-		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
-		jmxReporterDefinition.setName(DEFAULT_NAME);
-		jmxReporterDefinition.setDomain(DEFAULT_DOMAIN);
-		jmxReporterDefinition.setDynamicDomain(DEFAULT_DYNAMIC_DOMAIN);
-		jmxReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		jmxReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		jmxReporterDefinition.setFilter(DEFAULT_FILTER);
-		jmxReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
-		return jmxReporterDefinition;
+		JmxReporterDefinition defaultDefinition = new JmxReporterDefinition();
+		defaultDefinition.setName(DEFAULT_NAME);
+		defaultDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		defaultDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		defaultDefinition.setDomain(DEFAULT_DOMAIN);
+		defaultDefinition.setRuntimeDomain(DEFAULT_RUNTIME_DOMAIN);
+		defaultDefinition.setRuntimeSimpleDomain(DEFAULT_RUNTIME_SIMPLE_DOMAIN);
+		defaultDefinition.setFilter(DEFAULT_FILTER);
+		defaultDefinition.setRuntimeFilter(DEFAULT_RUNTIME_FILTER);
+		defaultDefinition.setRuntimeSimpleFilter(DEFAULT_RUNTIME_SIMPLE_FILTER);
+		return defaultDefinition;
 	}
 
 	// fields
 	private String		name	= DEFAULT_NAME;
-	private String		domain;
-	private String		dynamicDomain;
 	private TimeUnit	durationUnit;
 	private TimeUnit	rateUnit;
-	private String		filter;
-	private String		dynamicFilter;
+	private String		domain;
+	private String		runtimeDomain;
+	private String		runtimeSimpleDomain;
 
 	@Override
 	public JmxReporterDefinition applyAsOverride(final JmxReporterDefinition override) {
-		JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
+		JmxReporterDefinition combinedDefinition = new JmxReporterDefinition();
 		// get current values
-		jmxReporterDefinition.setName(this.name);
-		jmxReporterDefinition.setDomain(this.domain);
-		jmxReporterDefinition.setDynamicDomain(this.dynamicDomain);
-		jmxReporterDefinition.setDurationUnit(this.durationUnit);
-		jmxReporterDefinition.setRateUnit(this.rateUnit);
-		jmxReporterDefinition.setFilter(this.filter);
-		jmxReporterDefinition.setDynamicFilter(this.dynamicFilter);
+		combinedDefinition.setName(getName());
+		combinedDefinition.setDurationUnit(getDurationUnit());
+		combinedDefinition.setRateUnit(getRateUnit());
+		combinedDefinition.setDomain(getDomain());
+		combinedDefinition.setRuntimeDomain(getRuntimeDomain());
+		combinedDefinition.setRuntimeSimpleDomain(getRuntimeSimpleDomain());
+		combinedDefinition.setFilter(getFilter());
+		combinedDefinition.setRuntimeFilter(getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilter(getRuntimeSimpleFilter());
 		// apply new values
-		jmxReporterDefinition.setNameIfNotNull(override.getName());
-		jmxReporterDefinition.setDomainIfNotNull(override.getDomain());
-		jmxReporterDefinition.setDynamicDomainIfNotNull(override.getDynamicDomain());
-		jmxReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		jmxReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
-		jmxReporterDefinition.setFilterIfNotNull(override.getFilter());
-		jmxReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
-		return jmxReporterDefinition;
+		combinedDefinition.setNameIfNotNull(override.getName());
+		combinedDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		combinedDefinition.setRateUnitIfNotNull(override.getRateUnit());
+		combinedDefinition.setDomainIfNotNull(override.getDomain());
+		combinedDefinition.setRuntimeDomainIfNotNull(override.getRuntimeDomain());
+		combinedDefinition.setRuntimeSimpleDomainIfNotNull(override.getRuntimeSimpleDomain());
+		combinedDefinition.setFilterIfNotNull(override.getFilter());
+		combinedDefinition.setRuntimeFilterIfNotNull(override.getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilterIfNotNull(override.getRuntimeSimpleFilter());
+		return combinedDefinition;
 	}
 
 	/**
@@ -95,27 +99,27 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 	 * @return
 	 */
 	public JmxReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
-		JmxReporterDefinition jmxReporterDefinition = getReporterDefinitionWithDefaults();
+		JmxReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(jmxReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
-		final String evaluatedDomain = creatingExchange == null ? this.domain : evaluateExpression(jmxReporterDefinition.getDynamicDomain(), creatingExchange, String.class);
+		final String domainValue = evaluateValue(definitionWithDefaults.getDomain(), definitionWithDefaults.getRuntimeDomain(), definitionWithDefaults.getRuntimeSimpleDomain(), creatingExchange);
+		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
 
 		// @formatter:off
 		JmxReporter jmxReporter = JmxReporter
 				.forRegistry(metricRegistry)
-				.inDomain(evaluatedDomain)
-				.convertDurationsTo(jmxReporterDefinition.getDurationUnit())
-				.convertRatesTo(jmxReporterDefinition.getRateUnit())
+				.inDomain(domainValue)
+				.convertDurationsTo(definitionWithDefaults.getDurationUnit())
+				.convertRatesTo(definitionWithDefaults.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
 						if(!metricGroup.contains(metric)){
 							return false;
 						}
-						if(name==null || evaluatedFilter==null){
+						if(name==null || filterValue==null){
 							return true;
 						}
-						boolean result = name.matches(evaluatedFilter);
+						boolean result = name.matches(filterValue);
 						return result;
 					}
 				})
@@ -138,27 +142,6 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 		return this.durationUnit;
 	}
 
-	/**
-	 * @return the dynamicDomain
-	 */
-	public String getDynamicDomain() {
-		return this.dynamicDomain;
-	}
-
-	/**
-	 * @return the dynamicFilter
-	 */
-	public String getDynamicFilter() {
-		return this.dynamicFilter;
-	}
-
-	/**
-	 * @return the filter
-	 */
-	public String getFilter() {
-		return this.filter;
-	}
-
 	@Override
 	public String getName() {
 		return this.name;
@@ -177,6 +160,20 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 	}
 
 	/**
+	 * @return the runtimeDomain
+	 */
+	public String getRuntimeDomain() {
+		return this.runtimeDomain;
+	}
+
+	/**
+	 * @return the runtimeSimpleDomain
+	 */
+	public String getRuntimeSimpleDomain() {
+		return this.runtimeSimpleDomain;
+	}
+
+	/**
 	 * @param domain
 	 */
 	public void setDomain(final String domain) {
@@ -186,60 +183,6 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
-	}
-
-	/**
-	 * @param dynamicDomain
-	 *            the dynamicDomain to set
-	 */
-	public void setDynamicDomain(final String dynamicDomain) {
-		this.dynamicDomain = dynamicDomain;
-	}
-
-	/**
-	 * @param dynamicDomain
-	 *            the dynamicDomain to set
-	 */
-	public void setDynamicDomainIfNotNull(final String dynamicDomain) {
-		if (dynamicDomain != null) {
-			this.dynamicDomain = dynamicDomain;
-		}
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilter(final String dynamicFilter) {
-		this.dynamicFilter = dynamicFilter;
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
-		if (dynamicFilter != null) {
-			this.dynamicFilter = dynamicFilter;
-		}
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilter(final String filter) {
-		this.filter = filter;
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilterIfNotNull(final String filter) {
-		if (filter != null) {
-			setFilter(filter);
-		}
 	}
 
 	@Override
@@ -252,10 +195,69 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 		this.rateUnit = rateUnit;
 	}
 
+	/**
+	 * @param runtimeDomain
+	 *            the runtimeDomain to set
+	 */
+	public void setRuntimeDomain(final String runtimeDomain) {
+		this.runtimeDomain = runtimeDomain;
+	}
+
+	/**
+	 * @param runtimeDomain
+	 *            the runtimeDomain to set
+	 */
+	public void setRuntimeDomainIfNotNull(final String runtimeDomain) {
+		if (runtimeDomain != null) {
+			setRuntimeDomain(runtimeDomain);
+		}
+	}
+
+	/**
+	 * @param runtimeSimpleDomain
+	 *            the runtimeSimpleDomain to set
+	 */
+	public void setRuntimeSimpleDomain(final String runtimeSimpleDomain) {
+		this.runtimeSimpleDomain = runtimeSimpleDomain;
+	}
+
+	/**
+	 * @param runtimeSimpleDomain
+	 *            the runtimeSimpleDomain to set
+	 */
+	public void setRuntimeSimpleDomainIfNotNull(final String runtimeSimpleDomain) {
+		if (runtimeSimpleDomain != null) {
+			setRuntimeSimpleDomain(runtimeSimpleDomain);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "JmxReporterDefinition [name=" + this.name + ", domain=" + this.domain + ", dynamicDomain=" + this.dynamicDomain + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", filter=" + this.filter + ", dynamicFilter="
-				+ this.dynamicFilter + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("JmxReporterDefinition [name=");
+		builder.append(this.name);
+		builder.append(", durationUnit=");
+		builder.append(this.durationUnit);
+		builder.append(", rateUnit=");
+		builder.append(this.rateUnit);
+		builder.append(", domain=");
+		builder.append(this.domain);
+		builder.append(", runtimeDomain=");
+		builder.append(this.runtimeDomain);
+		builder.append(", runtimeSimpleDomain=");
+		builder.append(this.runtimeSimpleDomain);
+		builder.append(", getFilter()=");
+		builder.append(getFilter());
+		builder.append(", getRuntimeFilter()=");
+		builder.append(getRuntimeFilter());
+		builder.append(", getRuntimeSimpleFilter()=");
+		builder.append(getRuntimeSimpleFilter());
+		builder.append("]");
+		return builder.toString();
 	}
 
 	/**

@@ -27,6 +27,11 @@ import org.apache.camel.spi.Language;
  */
 public abstract class AbstractReporterDefinition<T extends ReporterDefinition<T>> implements ReporterDefinition<T> {
 
+	// constants
+	public static final String	DEFAULT_FILTER					= null;
+	public static final String	DEFAULT_RUNTIME_FILTER			= null;
+	public static final String	DEFAULT_RUNTIME_SIMPLE_FILTER	= null;
+
 	/**
 	 * @param value
 	 * @param creatingExchange
@@ -46,4 +51,105 @@ public abstract class AbstractReporterDefinition<T extends ReporterDefinition<T>
 		Expression filterExpression = language.createExpression(value);
 		return filterExpression.evaluate(creatingExchange, type);
 	}
+
+	/**
+	 * @param value
+	 * @param runtimeValue
+	 * @param runtimeSimpleValue
+	 * @param creatingExchange
+	 * @return
+	 */
+	public static String evaluateValue(final String value, final String runtimeValue, final String runtimeSimpleValue, final Exchange creatingExchange) {
+		final String evaluatedValue;
+		if (creatingExchange == null) {
+			evaluatedValue = value;
+		} else {
+			if (runtimeSimpleValue == null) {
+				evaluatedValue = runtimeValue;
+			} else {
+				evaluatedValue = evaluateExpression(runtimeSimpleValue, creatingExchange, String.class);
+			}
+		}
+		return evaluatedValue;
+	}
+
+	private String	filter;
+	private String	runtimeFilter;
+	private String	runtimeSimpleFilter;
+
+	/**
+	 * @return the filter
+	 */
+	public String getFilter() {
+		return this.filter;
+	}
+
+	/**
+	 * @return the runtimeFilter
+	 */
+	public String getRuntimeFilter() {
+		return this.runtimeFilter;
+	}
+
+	/**
+	 * @return the runtimeSimpleFilter
+	 */
+	public String getRuntimeSimpleFilter() {
+		return this.runtimeSimpleFilter;
+	}
+
+	/**
+	 * @param filter
+	 *            the filter to set
+	 */
+	public void setFilter(final String filter) {
+		this.filter = filter;
+	}
+
+	/**
+	 * @param filter
+	 *            the filter to set
+	 */
+	public void setFilterIfNotNull(final String filter) {
+		if (filter != null) {
+			setFilter(filter);
+		}
+	}
+
+	/**
+	 * @param runtimeFilter
+	 *            the runtimeFilter to set
+	 */
+	public void setRuntimeFilter(final String runtimeFilter) {
+		this.runtimeFilter = runtimeFilter;
+	}
+
+	/**
+	 * @param runtimeFilter
+	 *            the runtimeFilter to set
+	 */
+	public void setRuntimeFilterIfNotNull(final String runtimeFilter) {
+		if (runtimeFilter != null) {
+			setRuntimeFilter(runtimeFilter);
+		}
+	}
+
+	/**
+	 * @param runtimeSimpleFilter
+	 *            the runtimeSimpleFilter to set
+	 */
+	public void setRuntimeSimpleFilter(final String runtimeSimpleFilter) {
+		this.runtimeSimpleFilter = runtimeSimpleFilter;
+	}
+
+	/**
+	 * @param runtimeSimpleFilter
+	 *            the runtimeSimpleFilter to set
+	 */
+	public void setRuntimeSimpleFilterIfNotNull(final String runtimeSimpleFilter) {
+		if (runtimeSimpleFilter != null) {
+			setRuntimeSimpleFilter(runtimeSimpleFilter);
+		}
+	}
+
 }

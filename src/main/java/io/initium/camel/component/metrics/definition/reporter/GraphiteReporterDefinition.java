@@ -45,27 +45,28 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 	private static final String		DEFAULT_HOST					= "localhost";
 	private static final int		DEFAULT_PORT					= 2003;
 	private static final String		DEFAULT_PREFIX					= "metrics";
-	private static final String		DEFAULT_DYNAMIC_PREFIX			= null;
-	private static final String		DEFAULT_FILTER					= null;
-	private static final String		DEFAULT_DYNAMIC_FILTER			= null;
+	private static final String		DEFAULT_RUNTIME_PREFIX			= null;
+	private static final String		DEFAULT_RUNTIME_SIMPLE_PREFIX	= null;
 
 	/**
 	 * @return
 	 */
 	public static GraphiteReporterDefinition getDefaultReporter() {
-		GraphiteReporterDefinition graphiteReporterDefinition = new GraphiteReporterDefinition();
-		graphiteReporterDefinition.setName(DEFAULT_NAME);
-		graphiteReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		graphiteReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		graphiteReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
-		graphiteReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
-		graphiteReporterDefinition.setHost(DEFAULT_HOST);
-		graphiteReporterDefinition.setPort(DEFAULT_PORT);
-		graphiteReporterDefinition.setPrefix(DEFAULT_PREFIX);
-		graphiteReporterDefinition.setDynamicPrefix(DEFAULT_DYNAMIC_PREFIX);
-		graphiteReporterDefinition.setFilter(DEFAULT_FILTER);
-		graphiteReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
-		return graphiteReporterDefinition;
+		GraphiteReporterDefinition defaultDefinition = new GraphiteReporterDefinition();
+		defaultDefinition.setName(DEFAULT_NAME);
+		defaultDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		defaultDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		defaultDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
+		defaultDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
+		defaultDefinition.setHost(DEFAULT_HOST);
+		defaultDefinition.setPort(DEFAULT_PORT);
+		defaultDefinition.setPrefix(DEFAULT_PREFIX);
+		defaultDefinition.setRuntimePrefix(DEFAULT_RUNTIME_PREFIX);
+		defaultDefinition.setRuntimeSimplePrefix(DEFAULT_RUNTIME_SIMPLE_PREFIX);
+		defaultDefinition.setFilter(DEFAULT_FILTER);
+		defaultDefinition.setRuntimeFilter(DEFAULT_RUNTIME_FILTER);
+		defaultDefinition.setRuntimeSimpleFilter(DEFAULT_RUNTIME_SIMPLE_FILTER);
+		return defaultDefinition;
 	}
 
 	// fields
@@ -77,39 +78,41 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 	private String		host;
 	private Integer		port;
 	private String		prefix;
-	private String		dynamicPrefix;
-	private String		filter;
-
-	private String		dynamicFilter;
+	private String		runtimePrefix;
+	private String		runtimeSimplePrefix;
 
 	@Override
 	public GraphiteReporterDefinition applyAsOverride(final GraphiteReporterDefinition override) {
-		GraphiteReporterDefinition graphiteReporterDefinition = new GraphiteReporterDefinition();
+		GraphiteReporterDefinition combinedDefinition = new GraphiteReporterDefinition();
 		// get current values
-		graphiteReporterDefinition.setName(this.name);
-		graphiteReporterDefinition.setDurationUnit(this.durationUnit);
-		graphiteReporterDefinition.setRateUnit(this.rateUnit);
-		graphiteReporterDefinition.setPeriodDuration(this.periodDuration);
-		graphiteReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
-		graphiteReporterDefinition.setHost(this.host);
-		graphiteReporterDefinition.setPort(this.port);
-		graphiteReporterDefinition.setPrefix(this.prefix);
-		graphiteReporterDefinition.setDynamicPrefix(this.dynamicPrefix);
-		graphiteReporterDefinition.setFilter(this.filter);
-		graphiteReporterDefinition.setDynamicFilter(this.dynamicFilter);
+		combinedDefinition.setName(getName());
+		combinedDefinition.setDurationUnit(getDurationUnit());
+		combinedDefinition.setRateUnit(getRateUnit());
+		combinedDefinition.setPeriodDuration(getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnit(getPeriodDurationUnit());
+		combinedDefinition.setHost(getHost());
+		combinedDefinition.setPort(getPort());
+		combinedDefinition.setPrefix(getPrefix());
+		combinedDefinition.setRuntimePrefix(getRuntimePrefix());
+		combinedDefinition.setRuntimeSimplePrefix(getRuntimeSimplePrefix());
+		combinedDefinition.setFilter(getFilter());
+		combinedDefinition.setRuntimeFilter(getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilter(getRuntimeSimpleFilter());
 		// apply new values
-		graphiteReporterDefinition.setNameIfNotNull(override.getName());
-		graphiteReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		graphiteReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
-		graphiteReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
-		graphiteReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
-		graphiteReporterDefinition.setHostIfNotNull(override.getHost());
-		graphiteReporterDefinition.setPortIfNotNull(override.getPort());
-		graphiteReporterDefinition.setPrefixIfNotNull(override.getPrefix());
-		graphiteReporterDefinition.setDynamicPrefixIfNotNull(override.getDynamicPrefix());
-		graphiteReporterDefinition.setFilterIfNotNull(override.getFilter());
-		graphiteReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
-		return graphiteReporterDefinition;
+		combinedDefinition.setNameIfNotNull(override.getName());
+		combinedDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		combinedDefinition.setRateUnitIfNotNull(override.getRateUnit());
+		combinedDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
+		combinedDefinition.setHostIfNotNull(override.getHost());
+		combinedDefinition.setPortIfNotNull(override.getPort());
+		combinedDefinition.setPrefixIfNotNull(override.getPrefix());
+		combinedDefinition.setRuntimePrefixIfNotNull(override.getRuntimePrefix());
+		combinedDefinition.setRuntimeSimplePrefixIfNotNull(override.getRuntimeSimplePrefix());
+		combinedDefinition.setFilterIfNotNull(override.getFilter());
+		combinedDefinition.setRuntimeFilterIfNotNull(override.getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilterIfNotNull(override.getRuntimeSimpleFilter());
+		return combinedDefinition;
 	}
 
 	/**
@@ -117,28 +120,28 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 	 * @return
 	 */
 	public GraphiteReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
-		GraphiteReporterDefinition graphiteReporterDefinition = getReporterDefinitionWithDefaults();
-		final Graphite graphite = new Graphite(new InetSocketAddress(graphiteReporterDefinition.getHost(), graphiteReporterDefinition.getPort()));
+		GraphiteReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(graphiteReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
-		final String evaluatedPrefix = creatingExchange == null ? this.prefix : evaluateExpression(graphiteReporterDefinition.getDynamicPrefix(), creatingExchange, String.class);
+		final Graphite graphite = new Graphite(new InetSocketAddress(definitionWithDefaults.getHost(), definitionWithDefaults.getPort()));
+		final String prefixValue = evaluateValue(definitionWithDefaults.getPrefix(), definitionWithDefaults.getRuntimePrefix(), definitionWithDefaults.getRuntimeSimplePrefix(), creatingExchange);
+		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
 
 		// @formatter:off
 		GraphiteReporter graphiteReporter = GraphiteReporter
 				.forRegistry(metricRegistry)
-				.prefixedWith(evaluatedPrefix)
-				.convertDurationsTo(graphiteReporterDefinition.getDurationUnit())
-				.convertRatesTo(graphiteReporterDefinition.getRateUnit())
+				.prefixedWith(prefixValue)
+				.convertDurationsTo(definitionWithDefaults.getDurationUnit())
+				.convertRatesTo(definitionWithDefaults.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
 						if(!metricGroup.contains(metric)){
 							return false;
 						}
-						if(name==null || evaluatedFilter==null){
+						if(name==null || filterValue==null){
 							return true;
 						}
-						boolean result = name.matches(evaluatedFilter);
+						boolean result = name.matches(filterValue);
 						return result;
 					}
 				})
@@ -152,27 +155,6 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
-	}
-
-	/**
-	 * @return the dynamicFilter
-	 */
-	public String getDynamicFilter() {
-		return this.dynamicFilter;
-	}
-
-	/**
-	 * @return the dynamicPrefix
-	 */
-	public String getDynamicPrefix() {
-		return this.dynamicPrefix;
-	}
-
-	/**
-	 * @return the filter
-	 */
-	public String getFilter() {
-		return this.filter;
 	}
 
 	/**
@@ -224,63 +206,23 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 		return getDefaultReporter().applyAsOverride(this);
 	}
 
+	/**
+	 * @return the runtimePrefix
+	 */
+	public String getRuntimePrefix() {
+		return this.runtimePrefix;
+	}
+
+	/**
+	 * @return the runtimeSimplePrefix
+	 */
+	public String getRuntimeSimplePrefix() {
+		return this.runtimeSimplePrefix;
+	}
+
 	@Override
 	public void setDurationUnit(final TimeUnit durationUnit) {
 		this.durationUnit = durationUnit;
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilter(final String dynamicFilter) {
-		this.dynamicFilter = dynamicFilter;
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
-		if (dynamicFilter != null) {
-			setDynamicFilter(dynamicFilter);
-		}
-	}
-
-	/**
-	 * @param dynamicPrefix
-	 *            the dynamicPrefix to set
-	 */
-	public void setDynamicPrefix(final String dynamicPrefix) {
-		this.dynamicPrefix = dynamicPrefix;
-	}
-
-	/**
-	 * @param dynamicPrefix
-	 *            the dynamicPrefix to set
-	 */
-	public void setDynamicPrefixIfNotNull(final String dynamicPrefix) {
-		if (dynamicPrefix != null) {
-			setDynamicPrefix(dynamicPrefix);
-		}
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilter(final String filter) {
-		this.filter = filter;
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilterIfNotNull(final String filter) {
-		if (filter != null) {
-			setFilter(filter);
-		}
 	}
 
 	/**
@@ -343,10 +285,73 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 		this.rateUnit = rateUnit;
 	}
 
+	/**
+	 * @param runtimePrefix
+	 *            the runtimePrefix to set
+	 */
+	public void setRuntimePrefix(final String runtimePrefix) {
+		this.runtimePrefix = runtimePrefix;
+	}
+
+	/**
+	 * @param runtimePrefix
+	 *            the runtimePrefix to set
+	 */
+	public void setRuntimePrefixIfNotNull(final String runtimePrefix) {
+		if (runtimePrefix != null) {
+			setRuntimePrefix(runtimePrefix);
+		}
+	}
+
+	/**
+	 * @param runtimeSimplePrefix
+	 *            the runtimeSimplePrefix to set
+	 */
+	public void setRuntimeSimplePrefix(final String runtimeSimplePrefix) {
+		this.runtimeSimplePrefix = runtimeSimplePrefix;
+	}
+
+	/**
+	 * @param runtimeSimplePrefix
+	 *            the runtimeSimplePrefix to set
+	 */
+	public void setRuntimeSimplePrefixIfNotNull(final String runtimeSimplePrefix) {
+		if (runtimeSimplePrefix != null) {
+			setRuntimePrefix(runtimeSimplePrefix);
+		}
+	}
+
 	@Override
 	public String toString() {
-		return "GraphiteReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", host=" + this.host
-				+ ", port=" + this.port + ", prefix=" + this.prefix + ", dynamicPrefix=" + this.dynamicPrefix + ", filter=" + this.filter + ", dynamicFilter=" + this.dynamicFilter + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("GraphiteReporterDefinition [name=");
+		builder.append(this.name);
+		builder.append(", durationUnit=");
+		builder.append(this.durationUnit);
+		builder.append(", rateUnit=");
+		builder.append(this.rateUnit);
+		builder.append(", periodDuration=");
+		builder.append(this.periodDuration);
+		builder.append(", periodDurationUnit=");
+		builder.append(this.periodDurationUnit);
+		builder.append(", host=");
+		builder.append(this.host);
+		builder.append(", port=");
+		builder.append(this.port);
+		builder.append(", prefix=");
+		builder.append(this.prefix);
+		builder.append(", runtimePrefix=");
+		builder.append(this.runtimePrefix);
+		builder.append(", runtimeSimplePrefix=");
+		builder.append(this.runtimeSimplePrefix);
+		builder.append(", getFilter()=");
+		builder.append(getFilter());
+		builder.append(", getRuntimeFilter()=");
+		builder.append(getRuntimeFilter());
+		builder.append(", getRuntimeSimpleFilter()=");
+		builder.append(getRuntimeSimpleFilter());
+		builder.append("]");
+		return builder.toString();
 	}
 
 	/**

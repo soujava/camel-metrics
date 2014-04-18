@@ -40,22 +40,21 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 	private static final TimeUnit	DEFAULT_RATE_UNIT				= TimeUnit.SECONDS;
 	private static final long		DEFAULT_PERIOD_DURATION			= 1;
 	private static final TimeUnit	DEFAULT_PERIOD_DURATION_UNIT	= TimeUnit.MINUTES;
-	private static final String		DEFAULT_FILTER					= null;
-	private static final String		DEFAULT_DYNAMIC_FILTER			= null;
 
 	/**
 	 * @return
 	 */
 	public static ConsoleReporterDefinition getDefaultReporter() {
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
-		consoleReporterDefinition.setName(DEFAULT_NAME);
-		consoleReporterDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
-		consoleReporterDefinition.setRateUnit(DEFAULT_RATE_UNIT);
-		consoleReporterDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
-		consoleReporterDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
-		consoleReporterDefinition.setFilter(DEFAULT_FILTER);
-		consoleReporterDefinition.setDynamicFilter(DEFAULT_DYNAMIC_FILTER);
-		return consoleReporterDefinition;
+		ConsoleReporterDefinition defaultDefinition = new ConsoleReporterDefinition();
+		defaultDefinition.setName(DEFAULT_NAME);
+		defaultDefinition.setDurationUnit(DEFAULT_DURATION_UNIT);
+		defaultDefinition.setRateUnit(DEFAULT_RATE_UNIT);
+		defaultDefinition.setPeriodDuration(DEFAULT_PERIOD_DURATION);
+		defaultDefinition.setPeriodDurationUnit(DEFAULT_PERIOD_DURATION_UNIT);
+		defaultDefinition.setFilter(DEFAULT_FILTER);
+		defaultDefinition.setRuntimeFilter(DEFAULT_RUNTIME_FILTER);
+		defaultDefinition.setRuntimeSimpleFilter(DEFAULT_RUNTIME_SIMPLE_FILTER);
+		return defaultDefinition;
 	}
 
 	// fields
@@ -64,30 +63,29 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 	private TimeUnit	rateUnit;
 	private Long		periodDuration;
 	private TimeUnit	periodDurationUnit;
-	private String		filter;
-
-	private String		dynamicFilter;
 
 	@Override
 	public ConsoleReporterDefinition applyAsOverride(final ConsoleReporterDefinition override) {
-		ConsoleReporterDefinition consoleReporterDefinition = new ConsoleReporterDefinition();
+		ConsoleReporterDefinition combinedDefinition = new ConsoleReporterDefinition();
 		// get current values
-		consoleReporterDefinition.setName(this.name);
-		consoleReporterDefinition.setDurationUnit(this.durationUnit);
-		consoleReporterDefinition.setRateUnit(this.rateUnit);
-		consoleReporterDefinition.setPeriodDuration(this.periodDuration);
-		consoleReporterDefinition.setPeriodDurationUnit(this.periodDurationUnit);
-		consoleReporterDefinition.setFilter(this.filter);
-		consoleReporterDefinition.setDynamicFilter(this.dynamicFilter);
+		combinedDefinition.setName(getName());
+		combinedDefinition.setDurationUnit(getDurationUnit());
+		combinedDefinition.setRateUnit(getRateUnit());
+		combinedDefinition.setPeriodDuration(getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnit(this.periodDurationUnit);
+		combinedDefinition.setFilter(getFilter());
+		combinedDefinition.setRuntimeFilter(getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilter(getRuntimeSimpleFilter());
 		// apply new values
-		consoleReporterDefinition.setNameIfNotNull(override.getName());
-		consoleReporterDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
-		consoleReporterDefinition.setRateUnitIfNotNull(override.getRateUnit());
-		consoleReporterDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
-		consoleReporterDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
-		consoleReporterDefinition.setFilterIfNotNull(override.getFilter());
-		consoleReporterDefinition.setDynamicFilterIfNotNull(override.getDynamicFilter());
-		return consoleReporterDefinition;
+		combinedDefinition.setNameIfNotNull(override.getName());
+		combinedDefinition.setDurationUnitIfNotNull(override.getDurationUnit());
+		combinedDefinition.setRateUnitIfNotNull(override.getRateUnit());
+		combinedDefinition.setPeriodDurationIfNotNull(override.getPeriodDuration());
+		combinedDefinition.setPeriodDurationUnitIfNotNull(override.getPeriodDurationUnit());
+		combinedDefinition.setFilterIfNotNull(override.getFilter());
+		combinedDefinition.setRuntimeFilterIfNotNull(override.getRuntimeFilter());
+		combinedDefinition.setRuntimeSimpleFilterIfNotNull(override.getRuntimeSimpleFilter());
+		return combinedDefinition;
 	}
 
 	/**
@@ -95,25 +93,25 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 	 * @return
 	 */
 	public ConsoleReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
-		ConsoleReporterDefinition consoleReporterDefinition = getReporterDefinitionWithDefaults();
+		ConsoleReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String evaluatedFilter = creatingExchange == null ? this.filter : evaluateExpression(consoleReporterDefinition.getDynamicFilter(), creatingExchange, String.class);
+		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
 
 		// @formatter:off
 		ConsoleReporter consoleReporter = ConsoleReporter
 				.forRegistry(metricRegistry)
-				.convertDurationsTo(consoleReporterDefinition.getDurationUnit())
-				.convertRatesTo(consoleReporterDefinition.getRateUnit())
+				.convertDurationsTo(definitionWithDefaults.getDurationUnit())
+				.convertRatesTo(definitionWithDefaults.getRateUnit())
 				.filter(new MetricFilter(){
 					@Override
 					public boolean matches(final String name, final Metric metric) {
 						if(!metricGroup.contains(metric)){
 							return false;
 						}
-						if(name==null || evaluatedFilter==null){
+						if(name==null || filterValue==null){
 							return true;
 						}
-						boolean result = name.matches(evaluatedFilter);
+						boolean result = name.matches(filterValue);
 						return result;
 					}
 				})
@@ -127,20 +125,6 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 	 */
 	public TimeUnit getDurationUnit() {
 		return this.durationUnit;
-	}
-
-	/**
-	 * @return the dynamicFilter
-	 */
-	public String getDynamicFilter() {
-		return this.dynamicFilter;
-	}
-
-	/**
-	 * @return the filter
-	 */
-	public String getFilter() {
-		return this.filter;
 	}
 
 	@Override
@@ -179,42 +163,6 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 		this.durationUnit = durationUnit;
 	}
 
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilter(final String dynamicFilter) {
-		this.dynamicFilter = dynamicFilter;
-	}
-
-	/**
-	 * @param dynamicFilter
-	 *            the dynamicFilter to set
-	 */
-	public void setDynamicFilterIfNotNull(final String dynamicFilter) {
-		if (dynamicFilter != null) {
-			this.dynamicFilter = dynamicFilter;
-		}
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilter(final String filter) {
-		this.filter = filter;
-	}
-
-	/**
-	 * @param filter
-	 *            the filter to set
-	 */
-	public void setFilterIfNotNull(final String filter) {
-		if (filter != null) {
-			setFilter(filter);
-		}
-	}
-
 	@Override
 	public void setName(final String name) {
 		this.name = name;
@@ -251,8 +199,25 @@ public class ConsoleReporterDefinition extends AbstractReporterDefinition<Consol
 
 	@Override
 	public String toString() {
-		return "ConsoleReporterDefinition [name=" + this.name + ", durationUnit=" + this.durationUnit + ", rateUnit=" + this.rateUnit + ", periodDuration=" + this.periodDuration + ", periodDurationUnit=" + this.periodDurationUnit + ", filter="
-				+ this.filter + ", dynamicFilter=" + this.dynamicFilter + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("ConsoleReporterDefinition [name=");
+		builder.append(this.name);
+		builder.append(", durationUnit=");
+		builder.append(this.durationUnit);
+		builder.append(", rateUnit=");
+		builder.append(this.rateUnit);
+		builder.append(", periodDuration=");
+		builder.append(this.periodDuration);
+		builder.append(", periodDurationUnit=");
+		builder.append(this.periodDurationUnit);
+		builder.append(", getFilter()=");
+		builder.append(getFilter());
+		builder.append(", getRuntimeFilter()=");
+		builder.append(getRuntimeFilter());
+		builder.append(", getRuntimeSimpleFilter()=");
+		builder.append(getRuntimeSimpleFilter());
+		builder.append("]");
+		return builder.toString();
 	}
 
 	/**
