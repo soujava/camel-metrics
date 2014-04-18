@@ -17,6 +17,7 @@ package io.initium.camel.component.metrics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +46,6 @@ import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.GraphiteReporter;
 
-import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
@@ -71,47 +71,46 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 public class MetricGroup extends ServiceSupport {
 
 	// logging
-	private static final String						SELF							= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger						LOGGER							= LoggerFactory.getLogger(SELF);
+	private static final String							SELF								= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger							LOGGER								= LoggerFactory.getLogger(SELF);
 
 	// defaults
-	private static final List<TimeUnit>				SINCE_TIME_UNIT_VALUES			= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
-	private static final List<TimeUnit>				INTERVAL_TIME_UNIT_VALUES		= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
+	private static final List<TimeUnit>					DEFAULT_SINCE_TIME_UNIT_VALUES		= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
+	private static final List<TimeUnit>					DEFAULT_INTERVAL_TIME_UNIT_VALUES	= Arrays.asList(TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS);
 
 	// fields
-	private MetricsEndpoint							metricsEndpoint;
-	private final MetricRegistry					metricRegistry;
+	private MetricsEndpoint								metricsEndpoint;
+	private final MetricRegistry						metricRegistry;
 
 	// default metrics
-	private final Meter								exchangeRate;
-	private long									lastExchangeTime				= System.nanoTime();
-	private Exchange								lastExchange;
-	private boolean									haveProcessedAtLeastOneExchange	= false;
-	private final Map<TimeUnit, Histogram>			intervals;
-	private Timer									timer;
-	private TimerDefinition							timerDefinition;
-	private final Set<Gauge>						sinceGauges						= new HashSet<Gauge>();
+	private final Meter									exchangeRate;
+	private long										lastExchangeTime					= System.nanoTime();
+	private Exchange									lastExchange;
+	private boolean										haveProcessedAtLeastOneExchange		= false;
+	private final Map<TimeUnit, Histogram>				intervals							= new HashMap<TimeUnit, Histogram>();
+	private Timer										timer;
+	private TimerDefinition								timerDefinition;
+	private final Set<Gauge>							sinceGauges							= new HashSet<Gauge>();
 
-	// custom metrics
-	private CounterDefinition						counterDefinition;
-	private Counter									customCounter;
-	private HistogramDefinition						histogramDefinition;
-	private Histogram								customHistogram;
-	private GaugeDefinition							gaugeDefinition;
+	// for expression based metrics
+	// TODO check this
+	private final Map<HistogramDefinition, Histogram>	histograms							= new HashMap<HistogramDefinition, Histogram>();
+	private final Map<CounterDefinition, Counter>		counters							= new HashMap<CounterDefinition, Counter>();
+	private final Map<GaugeDefinition, Gauge>			gauges								= new HashMap<GaugeDefinition, Gauge>();
 
 	// reporters
-	private final List<JmxReporter>					jmxReporters					= new ArrayList<JmxReporter>();
-	private final List<ConsoleReporter>				consoleReporters				= new ArrayList<ConsoleReporter>();
-	private final List<GraphiteReporter>			graphiteReporters				= new ArrayList<GraphiteReporter>();
-	private final List<Slf4jReporter>				slf4jReporters					= new ArrayList<Slf4jReporter>();
-	private final List<CsvReporter>					csvReporters					= new ArrayList<CsvReporter>();
-	private final Map<String, ReporterDefinition>	componentReporterDefinitions;
-	private List<ReporterDefinition>				reporterDefinitions;
-	private String									baseName;
-	private String									infixName;
-	private String									fullName;
-	private Exchange								creatingExchange;
-	private CachedGauge								customGauge;
+	private final List<JmxReporter>						jmxReporters						= new ArrayList<JmxReporter>();
+	private final List<ConsoleReporter>					consoleReporters					= new ArrayList<ConsoleReporter>();
+	private final List<GraphiteReporter>				graphiteReporters					= new ArrayList<GraphiteReporter>();
+	private final List<Slf4jReporter>					slf4jReporters						= new ArrayList<Slf4jReporter>();
+	private final List<CsvReporter>						csvReporters						= new ArrayList<CsvReporter>();
+	private final Map<String, ReporterDefinition>		componentReporterDefinitions;
+	private List<ReporterDefinition>					reporterDefinitions;
+	private String										baseName;
+	private String										infixName;
+	private String										fullName;
+	private Exchange									creatingExchange;
+	private CachedGauge									customGauge;
 
 	/**
 	 * @param metricsEndpoint
@@ -134,7 +133,14 @@ public class MetricGroup extends ServiceSupport {
 		this.exchangeRate = this.metricRegistry.meter(exchangeRateMetricName);
 
 		// since gauge
-		for (final TimeUnit timeUnit : SINCE_TIME_UNIT_VALUES) {
+		List<TimeUnit> sinceTimeUnitValues;
+		List<TimeUnit> sinceTimeUnitValuesEndpoint = this.metricsEndpoint.getSinceTimeUnits();
+		if (sinceTimeUnitValuesEndpoint != null) {
+			sinceTimeUnitValues = sinceTimeUnitValuesEndpoint;
+		} else {
+			sinceTimeUnitValues = DEFAULT_SINCE_TIME_UNIT_VALUES;
+		}
+		for (final TimeUnit timeUnit : sinceTimeUnitValues) {
 			String sinceName = MetricUtils.calculateFullMetricName(this.fullName, "since" + getPrettyName(timeUnit));
 			Gauge sinceGauge = new Gauge<Double>() {
 				@Override
@@ -147,8 +153,14 @@ public class MetricGroup extends ServiceSupport {
 		}
 
 		// interval histogram
-		this.intervals = new HashMap<TimeUnit, Histogram>();
-		for (final TimeUnit timeUnit : INTERVAL_TIME_UNIT_VALUES) {
+		List<TimeUnit> intervalTimeUnitValues;
+		List<TimeUnit> intervalTimeUnitValuesEndpoint = this.metricsEndpoint.getIntervalTimeUnits();
+		if (intervalTimeUnitValuesEndpoint != null) {
+			intervalTimeUnitValues = intervalTimeUnitValuesEndpoint;
+		} else {
+			intervalTimeUnitValues = DEFAULT_INTERVAL_TIME_UNIT_VALUES;
+		}
+		for (final TimeUnit timeUnit : intervalTimeUnitValues) {
 			String lclName = MetricUtils.calculateFullMetricName(this.fullName, "interval" + getPrettyName(timeUnit));
 			Histogram intervalHistogram = new Histogram(new ExponentiallyDecayingReservoir());
 			this.metricRegistry.register(lclName, intervalHistogram);
@@ -172,34 +184,62 @@ public class MetricGroup extends ServiceSupport {
 	 * @param counterDefinition
 	 */
 	public void addCounterDefinition(final CounterDefinition counterDefinition) {
-		this.counterDefinition = counterDefinition;
-		String lclName = MetricUtils.calculateFullMetricName(this.fullName, this.counterDefinition.getName());
-		LOGGER.debug(MARKER, "enabling custom counter metric: {}", lclName);
-		this.customCounter = this.metricRegistry.counter(lclName);
+		if (counterDefinition != null) {
+			String subName = counterDefinition.getName();
+			if (subName == null) {
+				subName = CounterDefinition.getNextDefaultName();
+			}
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
+			LOGGER.debug(MARKER, "enabling counter metric: {} based on definition: {}", lclName, counterDefinition);
+			Counter counter = this.metricRegistry.counter(lclName);
+			this.counters.put(counterDefinition, counter);
+		}
+	}
+
+	/**
+	 * @param counterDefinitions
+	 */
+	public void addCounterDefinitions(final List<CounterDefinition> counterDefinitions) {
+		if (counterDefinitions != null) {
+			for (CounterDefinition counterDefinition : counterDefinitions) {
+				addCounterDefinition(counterDefinition);
+			}
+		}
 	}
 
 	/**
 	 * @param gaugeDefinition
 	 */
 	public void addGaugeDefinition(final GaugeDefinition gaugeDefinition) {
-		this.gaugeDefinition = gaugeDefinition;
-		String lclName = MetricUtils.calculateFullMetricName(this.fullName, this.gaugeDefinition.getName());
-		LOGGER.debug(MARKER, "enabling custom gauge metric: {}", lclName);
-		if (this.gaugeDefinition instanceof CachedGaugeDefinition) {
-			final CachedGaugeDefinition cachedGaugeDefinition = (CachedGaugeDefinition) this.gaugeDefinition;
-			this.customGauge = new CachedGauge<Object>(cachedGaugeDefinition.getCacheDuration(), cachedGaugeDefinition.getCacheDurationUnit()) {
+		if (gaugeDefinition != null) {
+			String subName = gaugeDefinition.getName();
+			if (subName == null) {
+				subName = GaugeDefinition.getNextDefaultName();
+			}
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
+			LOGGER.debug(MARKER, "enabling gauge metric: {} based on definition: {}", lclName, gaugeDefinition);
+			Gauge<Object> gauge = new Gauge<Object>() {
 				@Override
-				protected Object loadValue() {
+				public Object getValue() {
 					if (MetricGroup.this.lastExchange != null) {
-						return cachedGaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+						return gaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
 					} else {
 						return null;
 					}
 				}
 			};
-			this.metricRegistry.register(lclName, this.customGauge);
-		} else {
-			LOGGER.warn(MARKER, "ignoring custom gauge, unsupported gauge definition: {}", this.gaugeDefinition);
+			this.gauges.put(gaugeDefinition, gauge);
+		}
+	}
+
+	/**
+	 * @param gaugeDefinitions
+	 */
+	public void addGaugeDefinitions(final List<GaugeDefinition> gaugeDefinitions) {
+		if (gaugeDefinitions != null) {
+			for (GaugeDefinition gaugeDefinition : gaugeDefinitions) {
+				addGaugeDefinition(gaugeDefinition);
+			}
 		}
 	}
 
@@ -207,10 +247,27 @@ public class MetricGroup extends ServiceSupport {
 	 * @param histogramDefinition
 	 */
 	public void addHistogramDefinition(final HistogramDefinition histogramDefinition) {
-		this.histogramDefinition = histogramDefinition;
-		String lclName = MetricUtils.calculateFullMetricName(this.fullName, this.histogramDefinition.getName());
-		LOGGER.debug(MARKER, "enabling histogram counter metric: {}", lclName);
-		this.customHistogram = this.metricRegistry.histogram(lclName);
+		if (histogramDefinition != null) {
+			String subName = histogramDefinition.getName();
+			if (subName == null) {
+				subName = HistogramDefinition.getNextDefaultName();
+			}
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
+			LOGGER.debug(MARKER, "enabling histogram metric: {} based on definition: {}", lclName, histogramDefinition);
+			Histogram histogram = this.metricRegistry.histogram(lclName);
+			this.histograms.put(histogramDefinition, histogram);
+		}
+	}
+
+	/**
+	 * @param histogramDefinitions
+	 */
+	public void addHistogramDefinitions(final Collection<HistogramDefinition> histogramDefinitions) {
+		if (histogramDefinitions != null) {
+			for (HistogramDefinition histogramDefinition : histogramDefinitions) {
+				addHistogramDefinition(histogramDefinition);
+			}
+		}
 	}
 
 	/**
@@ -232,19 +289,18 @@ public class MetricGroup extends ServiceSupport {
 			return true;
 		} else if (metric == this.timer) {
 			return true;
-		} else if (metric == this.customCounter) {
+		} else if (this.counters.values().contains(metric)) {
 			return true;
-		} else if (metric == this.customHistogram) {
+		} else if (this.histograms.values().contains(metric)) {
 			return true;
 		} else if (metric == this.customGauge) {
 			return true;
+		} else if (this.intervals.values().contains(metric)) {
+			return true;
+		} else if (this.sinceGauges.contains(metric)) {
+			return true;
 		}
-		for (Histogram histogram : this.intervals.values()) {
-			if (metric == histogram) {
-				return true;
-			}
-		}
-		return this.sinceGauges.contains(metric);
+		return false;
 	}
 
 	/**
@@ -298,8 +354,8 @@ public class MetricGroup extends ServiceSupport {
 			updateAllIntervals(deltaInNanos);
 		}
 		this.haveProcessedAtLeastOneExchange = true;
-		markCustomCounters(exchange);
-		markCustomHistograms(exchange);
+		markCounters(exchange);
+		markHistograms(exchange);
 	}
 
 	/**
@@ -327,17 +383,21 @@ public class MetricGroup extends ServiceSupport {
 	/**
 	 * @param exchange
 	 */
-	private void markCustomCounters(final Exchange exchange) {
-		if (this.counterDefinition != null) {
-			if (this.customCounter != null) {
-				Long value = this.counterDefinition.getExpression().evaluate(exchange, Long.class);
-				if (value != null) {
-					this.customCounter.inc(value);
+	private void markCounters(final Exchange exchange) {
+		for (Entry<CounterDefinition, Counter> entry : this.counters.entrySet()) {
+			CounterDefinition counterDefinition = entry.getKey();
+			Counter counter = entry.getValue();
+			if (counterDefinition != null) {
+				if (counter != null) {
+					Long valueLong = counterDefinition.getExpression().evaluate(exchange, Long.class);
+					if (valueLong != null) {
+						counter.inc(valueLong);
+					} else {
+						LOGGER.warn(MARKER, "ignoring attempt to increment custom counter by non-Long");
+					}
 				} else {
-					LOGGER.warn(MARKER, "ignoring attempt to increment custom counter by non-Long");
+					LOGGER.warn(MARKER, "ignoring attempt to increment a null custom counter");
 				}
-			} else {
-				LOGGER.warn(MARKER, "ignoring attempt to increment a null custom counter");
 			}
 		}
 	}
@@ -345,17 +405,21 @@ public class MetricGroup extends ServiceSupport {
 	/**
 	 * @param exchange
 	 */
-	private void markCustomHistograms(final Exchange exchange) {
-		if (this.histogramDefinition != null) {
-			if (this.customHistogram != null) {
-				Long valueLong = this.histogramDefinition.getExpression().evaluate(exchange, Long.class);
-				if (valueLong != null) {
-					this.customHistogram.update(valueLong);
+	private void markHistograms(final Exchange exchange) {
+		for (Entry<HistogramDefinition, Histogram> entry : this.histograms.entrySet()) {
+			HistogramDefinition histogramDefinition = entry.getKey();
+			Histogram histogram = entry.getValue();
+			if (histogramDefinition != null) {
+				if (histogram != null) {
+					Long valueLong = histogramDefinition.getExpression().evaluate(exchange, Long.class);
+					if (valueLong != null) {
+						histogram.update(valueLong);
+					} else {
+						LOGGER.warn(MARKER, "ignoring attempt to update histogram by non-Long");
+					}
 				} else {
-					LOGGER.warn(MARKER, "ignoring attempt to update custom histogram by non-Long");
+					LOGGER.warn(MARKER, "ignoring attempt to update a null histogram");
 				}
-			} else {
-				LOGGER.warn(MARKER, "ignoring attempt to update a null custom histogram");
 			}
 		}
 	}

@@ -15,7 +15,6 @@
 // @formatter:on
 package io.initium.camel.component.metrics.definition.metric;
 
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -23,12 +22,5 @@ package io.initium.camel.component.metrics.definition.metric;
  * @since 2014-02-19
  */
 public class TimerDefinition extends MetricDefinition {
-
-	/**
-	 * @param name
-	 */
-	public TimerDefinition(final String name) {
-		super(name);
-	}
 
 }

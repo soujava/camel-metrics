@@ -15,21 +15,70 @@
 // @formatter:on
 package io.initium.camel.component.metrics.definition.metric;
 
-import org.apache.camel.Expression;
+import org.apache.camel.CamelContext;
+import org.apache.camel.spi.Language;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
  * @version 1.2
- * @since 2014-02-19
+ * @since 2014-04-17
  */
-public class CounterDefinition extends ExpessionMetricDefinition {
+public class CounterDefinition extends ExpressionMetricDefinition {
+
+	// constants
+	private static final String	DEFAULT_NAME_BASE		= "counter";
+	private static long			DEFAULT_NAME_BASE_INDEX	= 0;
+	private static final String	DEFAULT_VALUE			= "1";
 
 	/**
-	 * @param name
+	 * @return
 	 */
-	public CounterDefinition(final String name, final Expression expression) {
-		super(name, expression);
+	public static synchronized String getNextDefaultName() {
+		DEFAULT_NAME_BASE_INDEX++;
+		return DEFAULT_NAME_BASE + DEFAULT_NAME_BASE_INDEX;
+	}
+
+	// fields
+	private String	value	= DEFAULT_VALUE;
+
+	/**
+	 * @param camelContext
+	 */
+	public void createExpression(final CamelContext camelContext) {
+		Language language;
+		if (this.value.contains("$")) {
+			language = camelContext.resolveLanguage("file");
+		} else {
+			language = camelContext.resolveLanguage("constant");
+		}
+		setExpression(language.createExpression(this.value));
+	}
+
+	/**
+	 * @return the value
+	 */
+	public String getValue() {
+		return this.value;
+	}
+
+	/**
+	 * @param value
+	 *            the value to set
+	 */
+	public void setValue(final String value) {
+		this.value = value;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("CounterDefinition [value=");
+		builder.append(this.value);
+		builder.append(", getName()=");
+		builder.append(getName());
+		builder.append("]");
+		return builder.toString();
 	}
 
 }

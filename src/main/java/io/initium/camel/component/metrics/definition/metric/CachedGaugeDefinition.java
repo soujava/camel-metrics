@@ -17,8 +17,6 @@ package io.initium.camel.component.metrics.definition.metric;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.camel.Expression;
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -34,18 +32,6 @@ public class CachedGaugeDefinition extends GaugeDefinition {
 	// fields
 	private long					cacheDuration				= DEFAULT_CACHE_DURATION;
 	private TimeUnit				cacheDurationUnit			= DEFAULT_CACHE_DURATION_UNIT;
-
-	/**
-	 * @param name
-	 * @param expression
-	 * @param cacheDuration
-	 * @param cacheDurationUnit
-	 */
-	public CachedGaugeDefinition(final String name, final Expression expression, final long cacheDuration, final TimeUnit cacheDurationUnit) {
-		super(name, expression);
-		setCacheDuration(cacheDuration);
-		setCacheDurationUnit(cacheDurationUnit);
-	}
 
 	/**
 	 * @return the cacheDuration

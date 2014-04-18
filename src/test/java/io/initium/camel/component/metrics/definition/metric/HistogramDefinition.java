@@ -24,10 +24,10 @@ import org.apache.camel.spi.Language;
  * @version 1.2
  * @since 2014-04-17
  */
-public class GaugeDefinition extends ExpressionMetricDefinition {
+public class HistogramDefinition extends ExpressionMetricDefinition {
 
 	// constants
-	private static final String	DEFAULT_NAME_BASE		= "gauge";
+	private static final String	DEFAULT_NAME_BASE		= "histogram";
 	private static long			DEFAULT_NAME_BASE_INDEX	= 0;
 	private static final String	DEFAULT_VALUE			= "1";
 
@@ -73,7 +73,7 @@ public class GaugeDefinition extends ExpressionMetricDefinition {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("GaugeDefinition [value=");
+		builder.append("HistogramDefinition [value=");
 		builder.append(this.value);
 		builder.append(", getName()=");
 		builder.append(getName());

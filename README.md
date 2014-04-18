@@ -1,21 +1,45 @@
 #camel-metrics
 
-##Summary
-camel-metrics is a Apache Camel component that uses [Coda Hale Metrics](http://metrics.codahale.com/) to expose configurable metrics from your camel route via JMX.
 
-##Quick Start
-Format:
-```
-metrics://metricName?options
-```
-Example Use:
+
+##Summary
+camel-metrics is an Apache Camel component that uses [Coda Hale Metrics](http://metrics.codahale.com/) to easily expose configurable metrics from your camel route.
+
+
+
+###Quick Start
 ```
 <from uri="timer://namedTimer?period=100"/>
-<to uri="metrics://yourFirstMetric?context=com.your.company"/>
+<to uri="metrics://yourFirstMetric"/>
 ```
-By default you will see three types of default metrics exposed via JMX, "rate", "sinceX", and "intervalX".
+In your log, you should now see something like this being logged once per minute:
+```
+2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceHours, value=2.816475E-4
+2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceMilliseconds, value=1014.437
+2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceMinutes, value=0.01690885
+2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceSeconds, value=1.014632
+2014-04-17 12:32 - metrics - type=HISTOGRAM, name=yourFirstMetric.intervalHours, count=0, min=0, max=0, mean=0.0, stddev=0.0, median=0.0, p75=0.0, p95=0.0, p98=0.0, p99=0.0, p999=0.0
+2014-04-17 12:32 - metrics - type=HISTOGRAM, name=yourFirstMetric.intervalMilliseconds, count=0, min=0, max=0, mean=0.0, stddev=0.0, median=0.0, p75=0.0, p95=0.0, p98=0.0, p99=0.0, p999=0.0
+2014-04-17 12:32 - metrics - type=HISTOGRAM, name=yourFirstMetric.intervalMinutes, count=0, min=0, max=0, mean=0.0, stddev=0.0, median=0.0, p75=0.0, p95=0.0, p98=0.0, p99=0.0, p999=0.0
+2014-04-17 12:32 - metrics - type=HISTOGRAM, name=yourFirstMetric.intervalSeconds, count=0, min=0, max=0, mean=0.0, stddev=0.0, median=0.0, p75=0.0, p95=0.0, p98=0.0, p99=0.0, p999=0.0
+2014-04-17 12:32 - metrics - type=METER, name=yourFirstMetric.rate, count=0, mean_rate=0.0, m1=0.0, m5=0.0, m15=0.0, rate_unit=events/second
+```
 
-##Default Metrics
+
+
+###Base Metrics
+There are three types of metrics created: rate, since and interval.  They
+
+###Timing Metrics
+...
+
+###Custom Metrics
+...
+
+###Reporters
+...
+
+###Default Metrics
 "rate" in camel-metrics is a Meter in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#meters for more details on Meters.  Every exchange will cause a call to Meter.mark().
 
 "sinceX" in camel-metrics are Gauges in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#gauges more details for on Gauges. They come in 7 different varieties corresponding to the 7 values of java's TimeUnit enumeration: ,sinceNanoseconds, sinceMicroseconds, sinceMilliseconds, sinceSeconds, sinceMinutes, sinceHours and sinceDays.  The value of the metrics corresponds to how long it's been since an exchange has been processed this endpoint.  In the case of sinceSeconds, it's the number of seconds since an exchange has been processed by this endpoint, in the case of sinceMinutes, it's the number of seconds since an exchange has been processed by this endpoint, and so on.

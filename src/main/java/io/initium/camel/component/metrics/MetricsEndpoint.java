@@ -15,9 +15,7 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -25,25 +23,22 @@ import java.util.concurrent.TimeUnit;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
+import org.apache.camel.MultipleConsumersSupport;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.api.management.ManagedResource;
 import org.apache.camel.impl.DefaultEndpoint;
 import org.apache.camel.spi.Language;
-import org.apache.camel.spi.UriParam;
 import org.apache.camel.util.EndpointHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
-import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
+import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
 import io.initium.camel.component.metrics.definition.metric.TimerDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
@@ -52,10 +47,28 @@ import io.initium.camel.component.metrics.definition.reporter.GraphiteReporterDe
 import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefinition;
+import io.initium.common.util.GsonHelper;
 import io.initium.common.util.MetricUtils;
 import io.initium.common.util.OptionHelper;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
+import static io.initium.common.util.GsonHelper.CONSOLE_REPORTERS_TYPE;
+import static io.initium.common.util.GsonHelper.CONSOLE_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.COUNTER_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.COUNTER_DEFINITION_TYPE;
+import static io.initium.common.util.GsonHelper.CSV_REPORTERS_TYPE;
+import static io.initium.common.util.GsonHelper.CSV_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.GRAPHITE_REPORTERS_TYPE;
+import static io.initium.common.util.GsonHelper.GRAPHITE_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.GSON;
+import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITION_TYPE;
+import static io.initium.common.util.GsonHelper.JMX_REPORTERS_TYPE;
+import static io.initium.common.util.GsonHelper.JMX_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.SLF4J_REPORTERS_TYPE;
+import static io.initium.common.util.GsonHelper.SLF4J_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.TIME_UNITS_TYPE;
+import static io.initium.common.util.GsonHelper.TIME_UNIT_TYPE;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -65,7 +78,7 @@ import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
  */
 @SuppressWarnings({"rawtypes"})
 @ManagedResource(description = "Managed MetricsEndpoint")
-public class MetricsEndpoint extends DefaultEndpoint {
+public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumersSupport {
 
 	// TODO remove suppress "rawtypes", "unchecked" warnings by refactoring ReporterDefinition
 
@@ -85,44 +98,35 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
-
 	private Expression						infixExpression;
+
+	// for internal timer
 	private boolean							isInternalTimerEnabled	= false;
 	private final Timer						internalTimerStart		= null;
 	private final Timer						internalTimerNoop		= null;
-
 	private final Timer						internalTimerStop		= null;
+
 	// for timer metric
 	private final Timer						timer					= null;
-	@UriParam
 	private String							timingName				= "timing";
 	private String							timingActionName		= null;
 	private TimingAction					timingAction			= TimingAction.NOOP;
-	// for expression based counter metric
-	private String							counterName				= "count";
-	private Expression						counterExpression		= null;
-	// for expression based histogram metric
-	private String							histogramName			= "histogram";
-	private Expression						histogramExpression		= null;
-	// for expression based gauge metric
-	private String							gaugeName				= "gauge";
-	private Expression						gaugeExpression			= null;
-	private long							gaugeCacheDuration		= 10;
-	private TimeUnit						gaugeCacheDurationUnit	= TimeUnit.SECONDS;
-	// for reporters
-	private static final Gson				gson;
-	private static final Type				JMX_REPORTERS_TYPE		= new TypeToken<Collection<JmxReporterDefinition>>() {}.getType();
-	private static final Type				CONSOLE_REPORTERS_TYPE	= new TypeToken<Collection<ConsoleReporterDefinition>>() {}.getType();
-	private static final Type				GRAPHITE_REPORTERS_TYPE	= new TypeToken<Collection<GraphiteReporterDefinition>>() {}.getType();
-	private static final Type				SLF4J_REPORTERS_TYPE	= new TypeToken<Collection<Slf4jReporterDefinition>>() {}.getType();
-	private static final Type				CSV_REPORTERS_TYPE		= new TypeToken<Collection<CsvReporterDefinition>>() {}.getType();
-	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
 
-	static {
-		GsonBuilder gsonBuilder = new GsonBuilder();
-		gsonBuilder.registerTypeAdapter(TimeUnit.class, new TimeUnitConverter());
-		gson = gsonBuilder.create();
-	}
+	// for expression based metrics
+	private List<HistogramDefinition>		histogramDefinitions;
+	private List<CounterDefinition>			counterDefinitions;
+	private List<GaugeDefinition>			gaugeDefinitions;
+
+	// // for expression based gauge metric
+	// private String gaugeName = "gauge";
+	// private Expression gaugeExpression = null;
+	// private long gaugeCacheDuration = 10;
+	// private TimeUnit gaugeCacheDurationUnit = TimeUnit.SECONDS;
+
+	// for reporters
+	private final List<ReporterDefinition>	reporterDefinitions		= new ArrayList<ReporterDefinition>();
+	private List<TimeUnit>					sinceTimeUnits;
+	private List<TimeUnit>					intervalTimeUnits;
 
 	/**
 	 * @param uri
@@ -192,6 +196,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @return the intervalTimeUnits
+	 */
+	public List<TimeUnit> getIntervalTimeUnits() {
+		return this.intervalTimeUnits;
+	}
+
+	/**
 	 * @return
 	 */
 	public MetricsComponent getMetricComponent() {
@@ -214,6 +225,13 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public List<ReporterDefinition> getReporterDefinitions() {
 		return this.reporterDefinitions;
+	}
+
+	/**
+	 * @return the sinceTimeUnits
+	 */
+	public List<TimeUnit> getSinceTimeUnits() {
+		return this.sinceTimeUnits;
 	}
 
 	/**
@@ -260,24 +278,16 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		metricGroup = new MetricGroup(this, baseName, infixName);
 		// timer
 		if (this.timingAction == TimingAction.START) {
-			TimerDefinition timerDefinition = new TimerDefinition(this.timingName);
+			TimerDefinition timerDefinition = new TimerDefinition();
+			timerDefinition.setName(this.timingName);
 			metricGroup.addTimerDefinition(timerDefinition);
 		}
-		// expression based counter
-		if (this.counterExpression != null) {
-			CounterDefinition counterDefinition = new CounterDefinition(this.counterName, this.counterExpression);
-			metricGroup.addCounterDefinition(counterDefinition);
-		}
-		// expression based histogram
-		if (this.histogramExpression != null) {
-			HistogramDefinition histogramDefinition = new HistogramDefinition(this.histogramName, this.histogramExpression);
-			metricGroup.addHistogramDefinition(histogramDefinition);
-		}
-		// expression based gauge
-		if (this.gaugeExpression != null) {
-			CachedGaugeDefinition cachedGaugeDefinition = new CachedGaugeDefinition(this.gaugeName, this.gaugeExpression, this.gaugeCacheDuration, this.gaugeCacheDurationUnit);
-			metricGroup.addGaugeDefinition(cachedGaugeDefinition);
-		}
+
+		// expression based histograms
+		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
+		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
+
 		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
 		getCamelContext().addService(metricGroup);
 		return metricGroup;
@@ -300,24 +310,17 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		metricGroup = new MetricGroup(this, baseName, infixName, creatingExchange);
 		// timer
 		if (this.timingAction == TimingAction.START) {
-			TimerDefinition timerDefinition = new TimerDefinition(this.timingName);
+			TimerDefinition timerDefinition = new TimerDefinition();
+			timerDefinition.setName(this.timingName);
 			metricGroup.addTimerDefinition(timerDefinition);
 		}
-		// expression based counter
-		if (this.counterExpression != null) {
-			CounterDefinition counterDefinition = new CounterDefinition(this.counterName, this.counterExpression);
-			metricGroup.addCounterDefinition(counterDefinition);
-		}
-		// expression based histogram
-		if (this.histogramExpression != null) {
-			HistogramDefinition histogramDefinition = new HistogramDefinition(this.histogramName, this.histogramExpression);
-			metricGroup.addHistogramDefinition(histogramDefinition);
-		}
-		// expression based gauge
-		if (this.gaugeExpression != null) {
-			CachedGaugeDefinition cachedGaugeDefinition = new CachedGaugeDefinition(this.gaugeName, this.gaugeExpression, this.gaugeCacheDuration, this.gaugeCacheDurationUnit);
-			metricGroup.addGaugeDefinition(cachedGaugeDefinition);
-		}
+
+		// expression based histograms
+		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
+		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
+
+		//
 		this.metricsComponent.getMetricGroups().put(fullMetricGroupName, metricGroup);
 		getCamelContext().addService(metricGroup);
 		return metricGroup;
@@ -328,6 +331,12 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 */
 	public boolean isInternalTimerEnabled() {
 		return this.isInternalTimerEnabled;
+	}
+
+	@Override
+	public boolean isMultipleConsumersSupported() {
+		// TODO Verify this is right
+		return true;
 	}
 
 	@Override
@@ -375,30 +384,62 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param consoleReporter
+	 */
+	public void setConsoleReporter(final String consoleReporter) {
+		setConsoleReporters(consoleReporter);
+	}
+
+	/**
 	 * @param consoleReporters
 	 *            the consoleReporters to set
 	 */
 	public void setConsoleReporters(final String consoleReporters) {
-		List<ConsoleReporterDefinition> consoleReporterDefinitions = gson.fromJson(consoleReporters, CONSOLE_REPORTERS_TYPE);
+		List<ConsoleReporterDefinition> consoleReporterDefinitions;
+		try {
+			consoleReporterDefinitions = GSON.fromJson(consoleReporters, CONSOLE_REPORTERS_TYPE);
+		} catch (Exception e) {
+			ConsoleReporterDefinition consoleReporterDefinition = GSON.fromJson(consoleReporters, CONSOLE_REPORTER_TYPE);
+			consoleReporterDefinitions = new ArrayList<ConsoleReporterDefinition>();
+			consoleReporterDefinitions.add(consoleReporterDefinition);
+		}
 		for (ConsoleReporterDefinition consoleReporterDefinition : consoleReporterDefinitions) {
 			this.reporterDefinitions.add(consoleReporterDefinition);
 		}
 	}
 
 	/**
-	 * @param counterExpression
-	 *            the counterExpression to set
+	 * @param counter
+	 *            the counter to set
 	 */
-	public void setCounterDelta(final String counterExpression) {
-		this.counterExpression = createFileLanguageExpression(counterExpression);
+	public void setCounter(final String counter) {
+		setCounters(counter);
 	}
 
 	/**
-	 * @param counterName
-	 *            the counterName to set
+	 * @param counters
+	 *            the counters to set
 	 */
-	public void setCounterName(final String counterName) {
-		this.counterName = counterName;
+	public void setCounters(final String counters) {
+		List<CounterDefinition> counterDefinitions;
+		try {
+			counterDefinitions = GSON.fromJson(counters, COUNTER_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			CounterDefinition counterDefinition = GSON.fromJson(counters, COUNTER_DEFINITION_TYPE);
+			counterDefinitions = new ArrayList<CounterDefinition>();
+			counterDefinitions.add(counterDefinition);
+		}
+		for (CounterDefinition counterDefinition : counterDefinitions) {
+			counterDefinition.createExpression(getCamelContext());
+		}
+		this.counterDefinitions = counterDefinitions;
+	}
+
+	/**
+	 * @param csvReporter
+	 */
+	public void setCsvReporter(final String csvReporter) {
+		setCsvReporters(csvReporter);
 	}
 
 	/**
@@ -406,7 +447,14 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the csvReporters to set
 	 */
 	public void setCsvReporters(final String csvReporters) {
-		List<CsvReporterDefinition> csvReporterDefinitions = gson.fromJson(csvReporters, CSV_REPORTERS_TYPE);
+		List<CsvReporterDefinition> csvReporterDefinitions;
+		try {
+			csvReporterDefinitions = GSON.fromJson(csvReporters, CSV_REPORTERS_TYPE);
+		} catch (Exception e) {
+			CsvReporterDefinition csvReporterDefinition = GSON.fromJson(csvReporters, CSV_REPORTER_TYPE);
+			csvReporterDefinitions = new ArrayList<CsvReporterDefinition>();
+			csvReporterDefinitions.add(csvReporterDefinition);
+		}
 		for (CsvReporterDefinition csvReporterDefinition : csvReporterDefinitions) {
 			this.reporterDefinitions.add(csvReporterDefinition);
 		}
@@ -421,35 +469,37 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
-	 * @param gaugeCacheDuration
-	 *            the gaugeCacheDuration to set
+	 * @param gauge
+	 *            the gauge to set
 	 */
-	public void setGaugeCacheDuration(final long gaugeCacheDuration) {
-		this.gaugeCacheDuration = gaugeCacheDuration;
+	public void setGauge(final String gauge) {
+		setGauges(gauge);
 	}
 
 	/**
-	 * @param gaugeCacheDurationUnitName
-	 *            the gaugeCacheDurationUnit to set
+	 * @param gauges
+	 *            the gauges to set
 	 */
-	public void setGaugeCacheDurationUnit(final String gaugeCacheDurationUnitName) {
-		this.gaugeCacheDurationUnit = OptionHelper.parse(gaugeCacheDurationUnitName, TimeUnit.class);
+	public void setGauges(final String gauges) {
+		List<GaugeDefinition> gaugeDefinitions;
+		try {
+			gaugeDefinitions = GSON.fromJson(gauges, GsonHelper.GAUGE_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			GaugeDefinition gaugeDefinition = GSON.fromJson(gauges, GsonHelper.GAUGE_DEFINITION_TYPE);
+			gaugeDefinitions = new ArrayList<GaugeDefinition>();
+			gaugeDefinitions.add(gaugeDefinition);
+		}
+		for (GaugeDefinition gaugeDefinition : this.gaugeDefinitions) {
+			gaugeDefinition.createExpression(getCamelContext());
+		}
+		this.gaugeDefinitions = gaugeDefinitions;
 	}
 
 	/**
-	 * @param gaugeName
-	 *            the gaugeName to set
+	 * @param graphiteReporter
 	 */
-	public void setGaugeName(final String gaugeName) {
-		this.gaugeName = gaugeName;
-	}
-
-	/**
-	 * @param gaugeValue
-	 *            the gaugeValueDelta to set
-	 */
-	public void setGaugeValue(final String gaugeValue) {
-		this.gaugeExpression = createFileLanguageExpression(gaugeValue);
+	public void setGraphiteReporter(final String graphiteReporter) {
+		setGraphiteReporters(graphiteReporter);
 	}
 
 	/**
@@ -457,26 +507,44 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the graphiteReporters to set
 	 */
 	public void setGraphiteReporters(final String graphiteReporters) {
-		List<GraphiteReporterDefinition> graphiteReporterDefinitions = gson.fromJson(graphiteReporters, GRAPHITE_REPORTERS_TYPE);
+		List<GraphiteReporterDefinition> graphiteReporterDefinitions;
+		try {
+			graphiteReporterDefinitions = GSON.fromJson(graphiteReporters, GRAPHITE_REPORTERS_TYPE);
+		} catch (Exception e) {
+			GraphiteReporterDefinition graphiteReporterDefinition = GSON.fromJson(graphiteReporters, GRAPHITE_REPORTER_TYPE);
+			graphiteReporterDefinitions = new ArrayList<GraphiteReporterDefinition>();
+			graphiteReporterDefinitions.add(graphiteReporterDefinition);
+		}
 		for (GraphiteReporterDefinition graphiteReporterDefinition : graphiteReporterDefinitions) {
 			this.reporterDefinitions.add(graphiteReporterDefinition);
 		}
 	}
 
 	/**
-	 * @param histogramName
-	 *            the histogramName to set
+	 * @param histogram
+	 *            the histogram to set
 	 */
-	public void setHistogramName(final String histogramName) {
-		this.histogramName = histogramName;
+	public void setHistogram(final String histogram) {
+		setHistograms(histogram);
 	}
 
 	/**
-	 * @param histogramExpression
-	 *            the histogramExpression to set
+	 * @param histograms
+	 *            the histograms to set
 	 */
-	public void setHistogramValue(final String histogramExpression) {
-		this.histogramExpression = createFileLanguageExpression(histogramExpression);
+	public void setHistograms(final String histograms) {
+		List<HistogramDefinition> histogramDefinitions;
+		try {
+			histogramDefinitions = GSON.fromJson(histograms, HISTOGRAM_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			HistogramDefinition histogramDefinition = GSON.fromJson(histograms, HISTOGRAM_DEFINITION_TYPE);
+			histogramDefinitions = new ArrayList<HistogramDefinition>();
+			histogramDefinitions.add(histogramDefinition);
+		}
+		for (HistogramDefinition histogramDefinition : histogramDefinitions) {
+			histogramDefinition.createExpression(getCamelContext());
+		}
+		this.histogramDefinitions = histogramDefinitions;
 	}
 
 	/**
@@ -488,14 +556,85 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	}
 
 	/**
+	 * @param intervalTimeUnitString
+	 *            the intervalTimeUnitString to set
+	 */
+	public void setIntervalTimeUnit(final String intervalTimeUnitString) {
+		setIntervalTimeUnits(intervalTimeUnitString);
+	}
+
+	/**
+	 * @param intervalTimeUnitsString
+	 *            the intervalTimeUnitsString to set
+	 */
+	public void setIntervalTimeUnits(final String intervalTimeUnitsString) {
+		List<TimeUnit> intervalTimeUnits;
+		try {
+			intervalTimeUnits = GSON.fromJson(intervalTimeUnitsString, TIME_UNITS_TYPE);
+		} catch (Exception e) {
+			TimeUnit intervalTimeUnit = GSON.fromJson(intervalTimeUnitsString, TIME_UNIT_TYPE);
+			intervalTimeUnits = new ArrayList<TimeUnit>();
+			intervalTimeUnits.add(intervalTimeUnit);
+		}
+		this.intervalTimeUnits = intervalTimeUnits;
+	}
+
+	/**
+	 * @param jmxReporter
+	 *            the jmxReporter to set
+	 */
+	public void setJmxReporter(final String jmxReporter) {
+		setJmxReporters(jmxReporter);
+	}
+
+	/**
 	 * @param jmxReporters
 	 *            the jmxReporters to set
 	 */
 	public void setJmxReporters(final String jmxReporters) {
-		List<JmxReporterDefinition> jmxReporterDefinitions = gson.fromJson(jmxReporters, JMX_REPORTERS_TYPE);
+		List<JmxReporterDefinition> jmxReporterDefinitions;
+		try {
+			jmxReporterDefinitions = GSON.fromJson(jmxReporters, JMX_REPORTERS_TYPE);
+		} catch (Exception e) {
+			JmxReporterDefinition jmxReporterDefinition = GSON.fromJson(jmxReporters, JMX_REPORTER_TYPE);
+			jmxReporterDefinitions = new ArrayList<JmxReporterDefinition>();
+			jmxReporterDefinitions.add(jmxReporterDefinition);
+		}
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
 			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
+	}
+
+	/**
+	 * @param sinceTimeUnitString
+	 *            the sinceTimeUnitString to set
+	 */
+	public void setSinceTimeUnit(final String sinceTimeUnitString) {
+		setSinceTimeUnits(sinceTimeUnitString);
+	}
+
+	/**
+	 * @param sinceTimeUnitsString
+	 *            the sinceTimeUnitsString to set
+	 */
+	public void setSinceTimeUnits(final String sinceTimeUnitsString) {
+		List<TimeUnit> sinceTimeUnits;
+		try {
+			sinceTimeUnits = GSON.fromJson(sinceTimeUnitsString, TIME_UNITS_TYPE);
+		} catch (Exception e) {
+			TimeUnit sinceTimeUnit = GSON.fromJson(sinceTimeUnitsString, TIME_UNIT_TYPE);
+			sinceTimeUnits = new ArrayList<TimeUnit>();
+			sinceTimeUnits.add(sinceTimeUnit);
+		}
+		this.sinceTimeUnits = sinceTimeUnits;
+	}
+
+	/**
+	 * @param slf4jReporter
+	 *            the slf4jReporter to set
+	 */
+	public void setSlf4jReporter(final String slf4jReporter) {
+		setSlf4jReporters(slf4jReporter);
 	}
 
 	/**
@@ -503,11 +642,38 @@ public class MetricsEndpoint extends DefaultEndpoint {
 	 *            the slf4jReporters to set
 	 */
 	public void setSlf4jReporters(final String slf4jReporters) {
-		List<Slf4jReporterDefinition> slf4jReporterDefinitions = gson.fromJson(slf4jReporters, SLF4J_REPORTERS_TYPE);
+		List<Slf4jReporterDefinition> slf4jReporterDefinitions;
+		try {
+			slf4jReporterDefinitions = GSON.fromJson(slf4jReporters, SLF4J_REPORTERS_TYPE);
+		} catch (Exception e) {
+			Slf4jReporterDefinition slf4jReporterDefinition = GSON.fromJson(slf4jReporters, SLF4J_REPORTER_TYPE);
+			slf4jReporterDefinitions = new ArrayList<Slf4jReporterDefinition>();
+			slf4jReporterDefinitions.add(slf4jReporterDefinition);
+		}
 		for (Slf4jReporterDefinition slf4jReporterDefinition : slf4jReporterDefinitions) {
 			this.reporterDefinitions.add(slf4jReporterDefinition);
 		}
 	}
+
+	// /**
+	// * @param timingReservoirName
+	// * the timingReservoir to set
+	// */
+	// public void setTimingReservoir(final String timingReservoirName) {
+	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
+	// char firstChar = timingReservoirName.charAt(0);
+	// if (firstChar == '#') {
+	// String localName = timingReservoirName.substring(1);
+	// if (localName.length() > 0) {
+	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
+	// Reservoir.class);
+	// }
+	// }
+	// if (this.timingReservoir == null) {
+	// throw new NoSuchBeanException(this.name);
+	// }
+	// }
+	// }
 
 	/**
 	 * @param timingActionName
@@ -539,26 +705,6 @@ public class MetricsEndpoint extends DefaultEndpoint {
 		}
 		return language.createExpression(expression);
 	}
-
-	// /**
-	// * @param timingReservoirName
-	// * the timingReservoir to set
-	// */
-	// public void setTimingReservoir(final String timingReservoirName) {
-	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
-	// char firstChar = timingReservoirName.charAt(0);
-	// if (firstChar == '#') {
-	// String localName = timingReservoirName.substring(1);
-	// if (localName.length() > 0) {
-	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
-	// Reservoir.class);
-	// }
-	// }
-	// if (this.timingReservoir == null) {
-	// throw new NoSuchBeanException(this.name);
-	// }
-	// }
-	// }
 
 	/**
 	 * @param baseName

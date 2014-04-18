@@ -15,7 +15,6 @@
 // @formatter:on
 package io.initium.camel.component.metrics.definition.metric;
 
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -26,13 +25,6 @@ public class MetricDefinition {
 
 	// fields
 	private String	name;
-
-	/**
-	 * @param name
-	 */
-	public MetricDefinition(final String name) {
-		setName(name);
-	}
 
 	/**
 	 * @return the name
@@ -47,6 +39,11 @@ public class MetricDefinition {
 	 */
 	public void setName(final String name) {
 		this.name = name;
+	}
+
+	@Override
+	public String toString() {
+		return "MetricDefinition [name=" + this.name + "]";
 	}
 
 }

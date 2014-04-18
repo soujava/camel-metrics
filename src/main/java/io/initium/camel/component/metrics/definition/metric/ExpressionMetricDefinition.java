@@ -23,13 +23,35 @@ import org.apache.camel.Expression;
  * @version 1.2
  * @since 2014-02-19
  */
-public class HistogramDefinition extends ExpessionMetricDefinition {
+public abstract class ExpressionMetricDefinition extends MetricDefinition {
+
+	// fields
+	private Expression	expression;
 
 	/**
-	 * @param name
+	 * @return the expression
 	 */
-	public HistogramDefinition(final String name, final Expression expression) {
-		super(name, expression);
+	public Expression getExpression() {
+		return this.expression;
+	}
+
+	/**
+	 * @param expression
+	 *            the expression to set
+	 */
+	public void setExpression(final Expression expression) {
+		this.expression = expression;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("ExpressionMetricDefinition [expression=");
+		builder.append(this.expression);
+		builder.append(", getName()=");
+		builder.append(getName());
+		builder.append("]");
+		return builder.toString();
 	}
 
 }
