@@ -56,7 +56,7 @@ public class CamelMetricsJmxReporterDynamicDomainTest extends CamelMetricsJmxRep
 		assertThat(verifyObjectNameIsRegistered("metrics:name=test.sinceMilliseconds"), equalTo(true));
 		assertThat(verifyObjectNameIsRegistered("metrics:name=test.rate"), equalTo(true));
 		assertThat(verifyAttributeValueLong("metrics:name=test.rate", "Count", 3L), equalTo(true));
-		
+				
 		// dom1 metrics
 		assertThat(verifyObjectNameIsRegistered("dom1:name=test.infix1.intervalHours"), equalTo(true));
 		assertThat(verifyObjectNameIsRegistered("dom1:name=test.infix1.intervalMinutes"), equalTo(true));
@@ -115,60 +115,57 @@ public class CamelMetricsJmxReporterDynamicDomainTest extends CamelMetricsJmxRep
 		templateTwo.sendBodyAndHeaders("test", headers1);
 		templateTwo.sendBodyAndHeaders("test", headers2);
 		templateTwo.sendBodyAndHeaders("test", headers3);
-		
-		/*while(true) {
-			;
-		}*/
 
-//		// Basic metrics
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.rate"), equalTo(true));
-//		assertThat(verifyAttributeValueLong("metrics:name=test2.rate", "Count", 3L), equalTo(true));
-//		
-//		// dom1 metrics
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.intervalHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.intervalMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.intervalSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.intervalMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.sinceHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.sinceMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.sinceSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.sinceMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test.infixfilter1.rate"), equalTo(true));
-//		assertThat(verifyAttributeValueLong("domfilter1:name=test.infixfilter1.rate", "Count", 1L), equalTo(true));
-//		
-//		// dom2 metrics
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.intervalHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.intervalMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.intervalSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.intervalMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.sinceHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.sinceMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.sinceSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.sinceMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test.infixfilter2.rate"), equalTo(true));
-//		assertThat(verifyAttributeValueLong("domfilter2:name=test.infixfilter2.rate", "Count", 1L), equalTo(true));
-//		
-//		// dom3 metrics
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.intervalHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.intervalMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.intervalSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.intervalMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.sinceHours"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.sinceMinutes"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.sinceSeconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.sinceMilliseconds"), equalTo(false));
-//		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test.infixfilter3.rate"), equalTo(true));
-//		assertThat(verifyAttributeValueLong("domfilter3:name=test.infixfilter3.rate", "Count", 1L), equalTo(true));
-//
-//		resultEndpointOne.expectedMessageCount(3);
+
+		// Basic metrics
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.intervalMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.sinceMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test2.rate"), equalTo(true));
+		assertThat(verifyAttributeValueLong("metrics:name=test2.rate", "Count", 3L), equalTo(true));
+		
+		// dom1 metrics
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.intervalHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.intervalMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.intervalSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.intervalMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.sinceHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.sinceMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.sinceSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.sinceMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter1:name=test2.infixfilter1.rate"), equalTo(true));
+		assertThat(verifyAttributeValueLong("domfilter1:name=test2.infixfilter1.rate", "Count", 1L), equalTo(true));
+		
+		// dom2 metrics
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.intervalHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.intervalMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.intervalSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.intervalMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.sinceHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.sinceMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.sinceSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.sinceMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter2:name=test2.infixfilter2.rate"), equalTo(true));
+		assertThat(verifyAttributeValueLong("domfilter2:name=test2.infixfilter2.rate", "Count", 1L), equalTo(true));
+		
+		// dom3 metrics
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.intervalHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.intervalMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.intervalSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.intervalMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.sinceHours"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.sinceMinutes"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.sinceSeconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.sinceMilliseconds"), equalTo(false));
+		assertThat(verifyObjectNameIsRegistered("domfilter3:name=test2.infixfilter3.rate"), equalTo(true));
+		assertThat(verifyAttributeValueLong("domfilter3:name=test2.infixfilter3.rate", "Count", 1L), equalTo(true));
+
+		resultEndpointOne.expectedMessageCount(3);
 
 	}
 
@@ -178,8 +175,8 @@ public class CamelMetricsJmxReporterDynamicDomainTest extends CamelMetricsJmxRep
 			@Override
 			public void configure() {
 				// from("direct:startOne").to("log:io?showAll=true").to("metrics://test?jmxReporters=[{dynamicDomain='${header.domain}'}]").to("mock:resultOne");
-				from("direct:startOne").to("metrics://test?infix=${header.infix}&jmxReporters=[{dynamicDomain='${header.domain}'}]").to("mock:resultOne");
-				from("direct:startTwo").to("metrics://test2?infix=${header.infix}&jmxReporters=[{dynamicDomain='${header.domain}',filter=^(.*.rate)$,dynamicFilter=^(.*.rate)$}]").to("mock:resultTwo");	
+				from("direct:startOne").to("metrics://test?infix=${header.infix}&jmxReporters=[{runtimeSimpleDomain='${header.domain}'}]").to("mock:resultOne");
+				from("direct:startTwo").to("metrics://test2?infix=${header.infix}&jmxReporters=[{runtimeSimpleDomain='${header.domain}',filter=^(.*.rate)$,runtimeSimpleFilter=^(.*.rate)$}]").to("mock:resultTwo");	
 			};
 		};
 	}
