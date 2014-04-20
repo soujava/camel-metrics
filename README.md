@@ -3,16 +3,34 @@
 
 
 ##Summary
-camel-metrics is an Apache Camel component that uses [Coda Hale Metrics](http://metrics.codahale.com/) to easily expose configurable metrics from your camel route.
+camel-metrics is an [Apache Camel](http://camel.apache.org/) component that uses [Coda Hale Metrics](http://metrics.codahale.com/) to easily expose configurable metrics from your camel route.  The following is the general form for using the component:
+```
+metrics://metricBaseName?options
+```
 
 
 
-###Quick Start
+##Quick Start
+
+
+
+#### Setting Up Maven:
+```
+<dependencies>
+    <dependency>
+	    <groupId>io.initium.camel</groupId>
+	    <artifactId>camel-metrics</artifactId>
+	    <version>1.2.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
+#### Simple [Spring DSL](http://camel.apache.org/spring.html) Example:
 ```
 <from uri="timer://namedTimer?period=100"/>
 <to uri="metrics://yourFirstMetric"/>
 ```
-In your log, you should now see something like this being logged once per minute:
+Depending on your layout, your log have something like this added once per minute.
 ```
 2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceHours, value=2.816475E-4
 2014-04-17 12:32 - metrics - type=GAUGE, name=yourFirstMetric.sinceMilliseconds, value=1014.437
@@ -26,15 +44,29 @@ In your log, you should now see something like this being logged once per minute
 ```
 
 
+### Standard Metric Groups
+Typically each metric endpoint creates one group of metrics, this is the standard metric group.  It consists of 3 different categories of metrics, 9 metrics in total.
 
-###Base Metrics
-There are three types of metrics created: rate, since and interval.  They
+1. Rate Metric - The rate metric is a [Meter](http://metrics.codahale.com/manual/core/#meters) metric. Meter.mark() is called once per exchange.  All Meters have 5 attributes: count, mean rate, 1-minute rate, 5-minute rate and 15-minute rate.  See [Meter](http://metrics.codahale.com/manual/core/#meters) for more details.  The default name of the Meter is:
+	1. metricName.rate
+1. Since Metrics - The since metrics are [Gauges](http://metrics.codahale.com/manual/core/#gauges). By default the component creates four gauges, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These gauges show the delta between that timestamp.  All Gauges have 1 attribute: value.  The default names of the Gauges are:
+	1. metricName.sinceMilliseconds
+	1. metricName.sinceSeconds
+	1. metricName.sinceMinutes
+	1. metricName.sinceHours
+1. Interval Metrics - The since metrics are [Histograms](http://metrics.codahale.com/manual/core/#histograms). By default the component creates four histograms, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These histograms are updated with the delta between that timestamp. and the previous exchange's timestamp.  The histograms provide a distribution of the intervals between the exchanges.  Histograms have 11 attributes: count, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  See [Histograms](http://metrics.codahale.com/manual/core/#histograms) for more details.  The default names of the Histograms are:
+	1. metricName.intervalMilliseconds
+	1. metricName.intervalSeconds
+	1. metricName.intervalMinutes
+	1. metricName.intervalHours
+1. Timing Metric - The timing metric ia a  [Timer](http://metrics.codahale.com/manual/core/#timers). By default the component does not create a timing metric.  To enable it you must have two metric endpoints in your route.  The first one must have the option: timing=start, the second one must have the option: timing=stop.  The time elapsed between the two endpoints is recorded.  All Timers have 15 attributes: count, mean, 1-minute, 5-minute, 15-minute, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  The default name of the timer is:
+	1. metricName.timing
+1. Custom Metrics - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
+	1. counters - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
+	1. histograms - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
+	1. gauges - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
+	1. cachedGauges - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum
 
-###Timing Metrics
-...
-
-###Custom Metrics
-...
 
 ###Reporters
 ...

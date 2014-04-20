@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.test.junit4.CamelTestSupport;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MetricsTest extends CamelTestSupport {
@@ -30,7 +29,7 @@ public class MetricsTest extends CamelTestSupport {
 	}
 
 	@Test
-	@Ignore
+	// @Ignore
 	public void theThirdTest() throws Exception {
 		// Random random = new Random();
 		// JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
@@ -64,12 +63,22 @@ public class MetricsTest extends CamelTestSupport {
 
 				// @formatter:off
 				from("timer://myTestTimer?period=100")
+
+					// simple example to console
+					//.to("metrics://yourFirstMetric?consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+
+					// simple timing example
+					.to("metrics://yourFirstMetric?timing=start&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					.delay(1000)
+					.to("metrics://yourFirstMetric?timing=stop&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+
+					// miscellaneous examples
 					//.to("metrics://myMetric01?timing=start&infix=${in.body}")
 					//.to("metrics://yourFirstMetric?sinceTimeUnits=[SECONDS,DAYS]&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
 					//.to("metrics://yourFirstMetric?histograms=[{name=One,value=2},{value=3}]&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
-					.to("metrics://yourFirstMetric?jmxReporter={domain=metrics1}")
-					.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
-					.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
+					//.to("metrics://yourFirstMetric?jmxReporter={domain=metrics1}")
+					//.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
+					//.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
 					//.process(myProcessor)
 					//.to("metrics://requests?infix=${header.providerName}&jmxReporters=[{runtimeSimpleDomain='metrics.requests.${header.providerName}'}]")
 					//.to("metrics://myMetric01?enableInternalTimer=true")
