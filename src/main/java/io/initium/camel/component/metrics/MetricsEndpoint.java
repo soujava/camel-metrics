@@ -827,6 +827,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	 * @param parameters
 	 */
 	private void warnIfTimingStopIsUsedWithOtherParameters(final Map<String, Object> parameters) {
+		// TODO warning is not quite right anymore. timing=stop with infix is a valid combination
 		if (parameters.containsKey("timing")) {
 			Object value = parameters.get("timing");
 			if (value instanceof String) {
