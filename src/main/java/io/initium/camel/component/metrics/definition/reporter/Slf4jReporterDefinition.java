@@ -128,8 +128,8 @@ public class Slf4jReporterDefinition extends AbstractReporterDefinition<Slf4jRep
 		Slf4jReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
 		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
-		final String loggerNameValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
-		final String markerNameValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String loggerNameValue = evaluateValue(definitionWithDefaults.getLoggerName(), definitionWithDefaults.getRuntimeLoggerName(), definitionWithDefaults.getRuntimeSimpleLoggerName(), creatingExchange);
+		final String markerNameValue = evaluateValue(definitionWithDefaults.getMarkerName(), definitionWithDefaults.getRuntimeMarkerName(), definitionWithDefaults.getRuntimeSimpleMarkerName(), creatingExchange);
 
 		// @formatter:off
 		Slf4jReporter slf4jReporter = Slf4jReporter
