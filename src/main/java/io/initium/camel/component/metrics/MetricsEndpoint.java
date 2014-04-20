@@ -41,6 +41,7 @@ import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinitio
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
+import io.initium.camel.component.metrics.definition.metric.MeterDefinition;
 import io.initium.camel.component.metrics.definition.metric.TimerDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.CsvReporterDefinition;
@@ -68,6 +69,8 @@ import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITIONS_TYPE;
 import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.METER_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.METER_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.SLF4J_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.SLF4J_REPORTER_TYPE;
 import static io.initium.common.util.GsonHelper.TIME_UNITS_TYPE;
@@ -118,6 +121,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	// for expression based metrics
 	private List<HistogramDefinition>		histogramDefinitions;
 	private List<CounterDefinition>			counterDefinitions;
+	private List<MeterDefinition>			meterDefinitions;
 	private List<GaugeDefinition>			gaugeDefinitions;
 	private List<CachedGaugeDefinition>		cachedGaugeDefinitions;
 
@@ -283,6 +287,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 
 		// expression based histograms
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addMeterDefinitions(this.meterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
 		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
@@ -316,6 +321,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 
 		// expression based histograms
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addMeterDefinitions(this.meterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
 		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
@@ -629,6 +635,33 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
 			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
+	}
+
+	/**
+	 * @param meter
+	 *            the meter to set
+	 */
+	public void setMeter(final String meter) {
+		setMeters(meter);
+	}
+
+	/**
+	 * @param meters
+	 *            the meters to set
+	 */
+	public void setMeters(final String meters) {
+		List<MeterDefinition> meterDefinitions;
+		try {
+			meterDefinitions = GSON.fromJson(meters, METER_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			MeterDefinition meterDefinition = GSON.fromJson(meters, METER_DEFINITION_TYPE);
+			meterDefinitions = new ArrayList<MeterDefinition>();
+			meterDefinitions.add(meterDefinition);
+		}
+		for (MeterDefinition meterDefinition : meterDefinitions) {
+			meterDefinition.createExpression(getCamelContext());
+		}
+		this.meterDefinitions = meterDefinitions;
 	}
 
 	/**

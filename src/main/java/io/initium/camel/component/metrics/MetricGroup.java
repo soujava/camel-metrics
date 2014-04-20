@@ -50,6 +50,7 @@ import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinitio
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
+import io.initium.camel.component.metrics.definition.metric.MeterDefinition;
 import io.initium.camel.component.metrics.definition.metric.TimerDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.CsvReporterDefinition;
@@ -100,6 +101,7 @@ public class MetricGroup extends ServiceSupport {
 	// for expression based metrics
 	private final Map<HistogramDefinition, Histogram>		histograms							= new HashMap<HistogramDefinition, Histogram>();
 	private final Map<CounterDefinition, Counter>			counters							= new HashMap<CounterDefinition, Counter>();
+	private final Map<MeterDefinition, Meter>				meters								= new HashMap<MeterDefinition, Meter>();
 	private final Map<GaugeDefinition, Gauge>				gauges								= new HashMap<GaugeDefinition, Gauge>();
 	private final Map<CachedGaugeDefinition, CachedGauge>	cachedGauges						= new HashMap<CachedGaugeDefinition, CachedGauge>();
 
@@ -309,6 +311,33 @@ public class MetricGroup extends ServiceSupport {
 	}
 
 	/**
+	 * @param meterDefinition
+	 */
+	public void addMeterDefinition(final MeterDefinition meterDefinition) {
+		if (meterDefinition != null) {
+			String subName = meterDefinition.getName();
+			if (subName == null) {
+				subName = MeterDefinition.getNextDefaultName();
+			}
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
+			LOGGER.debug(MARKER, "enabling meter metric: {} based on definition: {}", lclName, meterDefinition);
+			Meter meter = this.metricRegistry.meter(lclName);
+			this.meters.put(meterDefinition, meter);
+		}
+	}
+
+	/**
+	 * @param meterDefinitions
+	 */
+	public void addMeterDefinitions(final List<MeterDefinition> meterDefinitions) {
+		if (meterDefinitions != null) {
+			for (MeterDefinition meterDefinition : meterDefinitions) {
+				addMeterDefinition(meterDefinition);
+			}
+		}
+	}
+
+	/**
 	 * @param timerDefinition
 	 */
 	public void addTimerDefinition(final TimerDefinition timerDefinition) {
@@ -395,6 +424,7 @@ public class MetricGroup extends ServiceSupport {
 		}
 		this.haveProcessedAtLeastOneExchange = true;
 		markCounters(exchange);
+		markMeters(exchange);
 		markHistograms(exchange);
 	}
 
@@ -459,6 +489,28 @@ public class MetricGroup extends ServiceSupport {
 					}
 				} else {
 					LOGGER.warn(MARKER, "ignoring attempt to update a null histogram");
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param exchange
+	 */
+	private void markMeters(final Exchange exchange) {
+		for (Entry<MeterDefinition, Meter> entry : this.meters.entrySet()) {
+			MeterDefinition meterDefinition = entry.getKey();
+			Meter meter = entry.getValue();
+			if (meterDefinition != null) {
+				if (meter != null) {
+					Long valueLong = meterDefinition.getExpression().evaluate(exchange, Long.class);
+					if (valueLong != null) {
+						meter.mark(valueLong);
+					} else {
+						LOGGER.warn(MARKER, "ignoring attempt to mark custom by non-Long");
+					}
+				} else {
+					LOGGER.warn(MARKER, "ignoring attempt to mark a null custom meter");
 				}
 			}
 		}

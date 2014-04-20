@@ -28,6 +28,7 @@ import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinitio
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
+import io.initium.camel.component.metrics.definition.metric.MeterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.CsvReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.GraphiteReporterDefinition;
@@ -75,6 +76,9 @@ public final class GsonHelper {
 
 	public static final Type	COUNTER_DEFINITIONS_TYPE		= new TypeToken<Collection<CounterDefinition>>() {}.getType();
 	public static final Type	COUNTER_DEFINITION_TYPE			= new TypeToken<CounterDefinition>() {}.getType();
+
+	public static final Type	METER_DEFINITIONS_TYPE			= new TypeToken<Collection<MeterDefinition>>() {}.getType();
+	public static final Type	METER_DEFINITION_TYPE			= new TypeToken<MeterDefinition>() {}.getType();
 
 	public static final Type	GAUGE_DEFINITIONS_TYPE			= new TypeToken<Collection<GaugeDefinition>>() {}.getType();
 	public static final Type	GAUGE_DEFINITION_TYPE			= new TypeToken<GaugeDefinition>() {}.getType();
