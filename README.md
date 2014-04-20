@@ -97,19 +97,90 @@ If you supply the infix option, it will be evaluated at runtime and a new metric
 
 ###Reporters
 Reporters expose exiting metrics in various ways.  If there are no reporters exposing a metric, there will be no way to see it's value.  Ther are 5 types of supported reporters:
+1. Options for All Reporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| durationTimeUnit | TimeUnit to use for "duration" metrics  | ... | ... |
+| rateTimeUnit | TimeUnit to use for "rate" metrics  | ... | ... |
+| filter | regex metric name filter used for base metrics | no default | slf4jReporter={name=myName,filter=^(myMetric01.rate)$} |
+| runtimeFilter | regex metric name filter used for custom metric groups  | no default | ... |
+| runtimeSimpleFilter | regex metric name filter used for custom metric groups, evaluated as a Simple Expression  | no default | ... |
+1. consoleReporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| periodDuration | ... | ... | ... |
+| periodDurationUnit | ... | ... | ... |
+
 1. slf4jReporters
 
 | Option | Description | Default | Example Uses |
 | --- | --- | --- | --- |
-| name| the name of the reporter | Slf4jReporterDefinition | slf4jReporter={name=myName} |
-| name| the name of the reporter | Slf4jReporterDefinition | slf4jReporter={name=myName} |
+| periodDuration | ... | ... | ... |
+| periodDurationUnit | ... | ... | ... |
+| loggerName | ... | ... | ... |
+| runtimeLoggerName | ... | ... | ... |
+| runtimeSimpleLoggerName | ... | ... | ... |
+| markerName | ... | ... | ... |
+| runtimeMarkerName | ... | ... | ... |
+| runtimeSimpleMarkerName | ... | ... | ... |
 
 1. consoleReporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| periodDuration | ... | ... | ... |
+| periodDurationUnit | ... | ... | ... |
+
 1. jmxReporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| domain | ... | ... | ... |
+| runtimeDomain | ... | ... | ... |
+| runtimeSimpleDomain | ... | ... | ... |
+
 1. csvReporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| periodDuration | ... | ... | ... |
+| periodDurationUnit | ... | ... | ... |
+| directory | ... | ... | ... |
+| runtimeDirectory | ... | ... | ... |
+| runtimeSimpleDirectory | ... | ... | ... |
+
 1. graphiteReporters
 
-Options available on all reporters:
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| periodDuration | ... | ... | ... |
+| periodDurationUnit | ... | ... | ... |
+| host | ... | ... | ... |
+| port | ... | ... | ... |
+| prefix | ... | ... | ... |
+| runtimePrefix | ... | ... | ... |
+| runtimeSimplePrefix | ... | ... | ... |
+
+#### Specifying reporters at the component level
+You may also configure reporters at the component level.  These reporters will apply to all metric groups.  Any reporters defined at the endpoint level, if named the same, will override the values.  Any reporter defined at the endpoint level for which there is no component level reporter with the same name will be a new reporter.
+
+Example
+```
+JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
+jmxReporterDefinition.setDomain("testDomain");
+MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
+this.context.addComponent("metrics", metricsComponent);
+		this.context.addRoutes(new RouteBuilder() {
+
+			@Override
+			public void configure() throws Exception {
+        ...
+			}
+		});
+```
+
 
 
 
@@ -136,8 +207,8 @@ Options available on all reporters:
 | cachedGauges | used to create additional custom cached gauges | no default | cachedGauges=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
 | cachedGauge | used to create an additional custom cached gauge | no default | cachedGauge={value='${simpleExpression}'} |
 | enableInternalTimer | enable timer of internal processing | false | enableInternalTimer=true |
-| consoleReporter | ... | ... | ... |
-| jmxReporter | ... | ... | ... |
-| slf4jReporter | ... | ... | ... |
-| graphiteReporter | ... | ... | ... |
-| csvReporter | ... | ... | ... |
+| consoleReporter | ... | ... | consoleReporters=[{...},{...},...] |
+| jmxReporter | ... | ... | jmxReporters=[{...},{...},...] |
+| slf4jReporter | ... | ... | slf4jReporters=[{...},{...},...] |
+| graphiteReporter | ... | ... | graphiteReporters=[{...},{...},...] |
+| csvReporter | ... | ... | csvReporters=[{...},{...},...] |
