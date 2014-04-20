@@ -88,7 +88,7 @@ public class MetricGroup extends ServiceSupport {
 	private Exchange										creatingExchange;
 
 	// default metrics
-	private final Meter										exchangeRate;
+	private final Meter										rate;
 	private long											lastExchangeTime					= System.nanoTime();
 	private Exchange										lastExchange;
 	private boolean											haveProcessedAtLeastOneExchange		= false;
@@ -131,8 +131,8 @@ public class MetricGroup extends ServiceSupport {
 		this.reporterDefinitions = this.metricsEndpoint.getReporterDefinitions();
 
 		// rate meter
-		String exchangeRateMetricName = MetricUtils.calculateFullMetricName(this.fullName, "rate");
-		this.exchangeRate = this.metricRegistry.meter(exchangeRateMetricName);
+		String rateMetricName = MetricUtils.calculateFullMetricName(this.fullName, "rate");
+		this.rate = this.metricRegistry.meter(rateMetricName);
 
 		// since gauge
 		List<TimeUnit> sinceTimeUnitValues;
@@ -323,7 +323,7 @@ public class MetricGroup extends ServiceSupport {
 	 * @return
 	 */
 	public boolean contains(final Metric metric) {
-		if (metric == this.exchangeRate) {
+		if (metric == this.rate) {
 			return true;
 		} else if (this.intervals.values().contains(metric)) {
 			return true;
@@ -388,7 +388,7 @@ public class MetricGroup extends ServiceSupport {
 		long deltaInNanos = lastExchangeDelta();
 		this.lastExchange = exchange;
 		this.lastExchangeTime = System.nanoTime();
-		this.exchangeRate.mark();
+		this.rate.mark();
 		if (this.haveProcessedAtLeastOneExchange) {
 			LOGGER.trace("deltaInNanos: {}", deltaInNanos);
 			updateAllIntervals(deltaInNanos);
