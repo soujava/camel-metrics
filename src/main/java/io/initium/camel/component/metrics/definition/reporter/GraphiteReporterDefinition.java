@@ -122,9 +122,10 @@ public class GraphiteReporterDefinition extends AbstractReporterDefinition<Graph
 	public GraphiteReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
 		GraphiteReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final Graphite graphite = new Graphite(new InetSocketAddress(definitionWithDefaults.getHost(), definitionWithDefaults.getPort()));
-		final String prefixValue = evaluateValue(definitionWithDefaults.getPrefix(), definitionWithDefaults.getRuntimePrefix(), definitionWithDefaults.getRuntimeSimplePrefix(), creatingExchange);
 		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String prefixValue = evaluateValue(definitionWithDefaults.getPrefix(), definitionWithDefaults.getRuntimePrefix(), definitionWithDefaults.getRuntimeSimplePrefix(), creatingExchange);
+
+		final Graphite graphite = new Graphite(new InetSocketAddress(definitionWithDefaults.getHost(), definitionWithDefaults.getPort()));
 
 		// @formatter:off
 		GraphiteReporter graphiteReporter = GraphiteReporter

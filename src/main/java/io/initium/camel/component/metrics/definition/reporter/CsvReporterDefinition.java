@@ -111,8 +111,8 @@ public class CsvReporterDefinition extends AbstractReporterDefinition<CsvReporte
 	public CsvReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
 		CsvReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String directoryValue = evaluateValue(definitionWithDefaults.getDirectory(), definitionWithDefaults.getRuntimeDirectory(), definitionWithDefaults.getRuntimeSimpleDirectory(), creatingExchange);
 		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String directoryValue = evaluateValue(definitionWithDefaults.getDirectory(), definitionWithDefaults.getRuntimeDirectory(), definitionWithDefaults.getRuntimeSimpleDirectory(), creatingExchange);
 
 		// @formatter:off
 		CsvReporter csvReporter = CsvReporter

@@ -101,8 +101,8 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 	public JmxReporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup) {
 		JmxReporterDefinition definitionWithDefaults = getReporterDefinitionWithDefaults();
 
-		final String domainValue = evaluateValue(definitionWithDefaults.getDomain(), definitionWithDefaults.getRuntimeDomain(), definitionWithDefaults.getRuntimeSimpleDomain(), creatingExchange);
 		final String filterValue = evaluateValue(definitionWithDefaults.getFilter(), definitionWithDefaults.getRuntimeFilter(), definitionWithDefaults.getRuntimeSimpleFilter(), creatingExchange);
+		final String domainValue = evaluateValue(definitionWithDefaults.getDomain(), definitionWithDefaults.getRuntimeDomain(), definitionWithDefaults.getRuntimeSimpleDomain(), creatingExchange);
 
 		// @formatter:off
 		JmxReporter jmxReporter = JmxReporter
