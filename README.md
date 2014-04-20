@@ -96,7 +96,21 @@ If you supply the infix option, it will be evaluated at runtime and a new metric
 
 
 ###Reporters
-...
+Reporters expose exiting metrics in various ways.  If there are no reporters exposing a metric, there will be no way to see it's value.  Ther are 5 types of supported reporters:
+1. slf4jReporters
+
+| Option | Description | Default | Example Uses |
+| --- | --- | --- | --- |
+| name| the name of the reporter | Slf4jReporterDefinition | slf4jReporter={name=myName} |
+| name| the name of the reporter | Slf4jReporterDefinition | slf4jReporter={name=myName} |
+
+1. consoleReporters
+1. jmxReporters
+1. csvReporters
+1. graphiteReporters
+
+Options available on all reporters:
+
 
 
 ###URI Option Reference
@@ -111,14 +125,19 @@ If you supply the infix option, it will be evaluated at runtime and a new metric
 | rateName |  name of the rate metric | "rate" | any string |
 | sinceName |  base name of the since metrics | "since" | any string |
 | intervalName |  base name of the since metrics | "interval" | any string |
-| counters | desc | default | comments |
-| counter | desc | default | comments |
-| meters | desc | default | comments |
-| meter | desc | default | comments |
-| gauges | desc | default | comments |
-| gauge | desc | default | comments |
-| cachedGauges | desc | default | comments |
-| cachedGauge | desc | default | comments |
-| histograms | desc | default | comments |
-| histogram | desc | default | comments |
-| enableInternalTimer | desc | default | comments |
+| counters | used to create additional custom counters | no default | counters=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
+| counter | used to create an additional custom counter | no default | counter={value='${simpleExpression}'} |
+| meters | used to create additional custom meters | no default | meters=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
+| meter | used to create an additional custom meter | no default | meter={value='${simpleExpression}'} |
+| histograms | used to create additional custom histograms | no default | histograms=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
+| histogram | used to create an additional custom histogram | no default | histogram={value='${simpleExpression}'} |
+| gauges | used to create additional custom gauges | no default | gauges=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
+| gauge | used to create an additional custom gauge | no default | gauge={value='${simpleExpression}'} |
+| cachedGauges | used to create additional custom cached gauges | no default | cachedGauges=[{value='${simpleExpression}'},{value='${otherSimpleExpression}'}] |
+| cachedGauge | used to create an additional custom cached gauge | no default | cachedGauge={value='${simpleExpression}'} |
+| enableInternalTimer | enable timer of internal processing | false | enableInternalTimer=true |
+| consoleReporter | ... | ... | ... |
+| jmxReporter | ... | ... | ... |
+| slf4jReporter | ... | ... | ... |
+| graphiteReporter | ... | ... | ... |
+| csvReporter | ... | ... | ... |

@@ -59,7 +59,6 @@ import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinit
 import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefinition;
 import io.initium.common.util.MetricUtils;
-import io.initium.common.util.StringUtils;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
 
@@ -133,7 +132,7 @@ public class MetricGroup extends ServiceSupport {
 		this.reporterDefinitions = this.metricsEndpoint.getReporterDefinitions();
 
 		// rate meter
-		String rateMetricName = MetricUtils.calculateFullMetricName(this.fullName, "rate");
+		String rateMetricName = MetricUtils.calculateFullMetricName(this.fullName, this.metricsEndpoint.getRateName());
 		this.rate = this.metricRegistry.meter(rateMetricName);
 
 		// since gauge
@@ -145,7 +144,8 @@ public class MetricGroup extends ServiceSupport {
 			sinceTimeUnitValues = DEFAULT_SINCE_TIME_UNIT_VALUES;
 		}
 		for (final TimeUnit timeUnit : sinceTimeUnitValues) {
-			String sinceName = MetricUtils.calculateFullMetricName(this.fullName, "since" + getPrettyName(timeUnit));
+			// TOOD change this?
+			String sinceName = MetricUtils.calculateFullMetricName(this.fullName, this.metricsEndpoint.getSinceName() + '.' + getPrettyName(timeUnit));
 			Gauge sinceGauge = new Gauge<Double>() {
 				@Override
 				public Double getValue() {
@@ -165,7 +165,7 @@ public class MetricGroup extends ServiceSupport {
 			intervalTimeUnitValues = DEFAULT_INTERVAL_TIME_UNIT_VALUES;
 		}
 		for (final TimeUnit timeUnit : intervalTimeUnitValues) {
-			String lclName = MetricUtils.calculateFullMetricName(this.fullName, "interval" + getPrettyName(timeUnit));
+			String lclName = MetricUtils.calculateFullMetricName(this.fullName, this.metricsEndpoint.getIntervalName() + '.' + getPrettyName(timeUnit));
 			Histogram intervalHistogram = new Histogram(new ExponentiallyDecayingReservoir());
 			this.metricRegistry.register(lclName, intervalHistogram);
 			this.intervals.put(timeUnit, intervalHistogram);
@@ -433,7 +433,8 @@ public class MetricGroup extends ServiceSupport {
 	 * @return
 	 */
 	private String getPrettyName(final TimeUnit timeUnit) {
-		return StringUtils.capitalize(timeUnit.toString());
+		// return StringUtils.capitalize(timeUnit.toString());
+		return timeUnit.toString().toLowerCase();
 	}
 
 	/**

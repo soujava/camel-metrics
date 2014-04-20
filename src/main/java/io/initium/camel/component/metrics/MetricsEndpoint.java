@@ -112,9 +112,14 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	private final Timer						internalTimerNoop		= null;
 	private final Timer						internalTimerStop		= null;
 
+	// base metric names
+	private String							rateName				= "rate";
+	private String							sinceName				= "since";
+	private String							intervalName			= "interval";
+	private String							timingName				= "timing";
+
 	// for timer metric
 	private final Timer						timer					= null;
-	private String							timingName				= "timing";
 	private String							timingActionName		= null;
 	private TimingAction					timingAction			= TimingAction.NOOP;
 
@@ -197,6 +202,13 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @return the intervalName
+	 */
+	public String getIntervalName() {
+		return this.intervalName;
+	}
+
+	/**
 	 * @return the intervalTimeUnits
 	 */
 	public List<TimeUnit> getIntervalTimeUnits() {
@@ -222,10 +234,24 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @return the rateName
+	 */
+	public String getRateName() {
+		return this.rateName;
+	}
+
+	/**
 	 * @return the reporterDefinitions
 	 */
 	public List<ReporterDefinition> getReporterDefinitions() {
 		return this.reporterDefinitions;
+	}
+
+	/**
+	 * @return the sinceName
+	 */
+	public String getSinceName() {
+		return this.sinceName;
 	}
 
 	/**
@@ -588,6 +614,14 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @param intervalName
+	 *            the intervalName to set
+	 */
+	public void setIntervalName(final String intervalName) {
+		this.intervalName = intervalName;
+	}
+
+	/**
 	 * @param intervalTimeUnitString
 	 *            the intervalTimeUnitString to set
 	 */
@@ -664,6 +698,42 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		this.meterDefinitions = meterDefinitions;
 	}
 
+	// /**
+	// * @param timingReservoirName
+	// * the timingReservoir to set
+	// */
+	// public void setTimingReservoir(final String timingReservoirName) {
+	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
+	// char firstChar = timingReservoirName.charAt(0);
+	// if (firstChar == '#') {
+	// String localName = timingReservoirName.substring(1);
+	// if (localName.length() > 0) {
+	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
+	// Reservoir.class);
+	// }
+	// }
+	// if (this.timingReservoir == null) {
+	// throw new NoSuchBeanException(this.name);
+	// }
+	// }
+	// }
+
+	/**
+	 * @param rateName
+	 *            the rateName to set
+	 */
+	public void setRateName(final String rateName) {
+		this.rateName = rateName;
+	}
+
+	/**
+	 * @param sinceName
+	 *            the sinceName to set
+	 */
+	public void setSinceName(final String sinceName) {
+		this.sinceName = sinceName;
+	}
+
 	/**
 	 * @param sinceTimeUnitString
 	 *            the sinceTimeUnitString to set
@@ -713,26 +783,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			this.reporterDefinitions.add(slf4jReporterDefinition);
 		}
 	}
-
-	// /**
-	// * @param timingReservoirName
-	// * the timingReservoir to set
-	// */
-	// public void setTimingReservoir(final String timingReservoirName) {
-	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
-	// char firstChar = timingReservoirName.charAt(0);
-	// if (firstChar == '#') {
-	// String localName = timingReservoirName.substring(1);
-	// if (localName.length() > 0) {
-	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
-	// Reservoir.class);
-	// }
-	// }
-	// if (this.timingReservoir == null) {
-	// throw new NoSuchBeanException(this.name);
-	// }
-	// }
-	// }
 
 	/**
 	 * @param timingActionName

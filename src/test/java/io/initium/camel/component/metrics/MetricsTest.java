@@ -15,8 +15,13 @@
 // @formatter:on
 package io.initium.camel.component.metrics;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
@@ -31,7 +36,6 @@ public class MetricsTest extends CamelTestSupport {
 	@Test
 	// @Ignore
 	public void theThirdTest() throws Exception {
-		// Random random = new Random();
 		// JmxReporterDefinition jmxReporterDefinition = new JmxReporterDefinition();
 		// jmxReporterDefinition.setDomain("testDomain");
 		// jmxReporterDefinition.setFilter("^(myMetric01.rate|myMetric01.intervalSeconds)$");
@@ -41,36 +45,35 @@ public class MetricsTest extends CamelTestSupport {
 		// MetricsComponent metricsComponent = new MetricsComponent(jmxReporterDefinition);
 		// this.context.addComponent("metrics", metricsComponent);
 		this.context.addRoutes(new RouteBuilder() {
+			private final Random	random	= new Random();
 
 			@Override
 			public void configure() throws Exception {
-				// final List<String> PROVIDERS = Arrays.asList("ADAC", "GARMIN", "NAVIGON");
-				// final List<String> PROVIDERS_BODY = Arrays.asList("#", "##", "###");
-				// Processor myProcessor = new Processor() {
-				// @Override
-				// public void process(final Exchange exchange) throws Exception {
-				// int index = random.nextInt(PROVIDERS.size());
-				// exchange.getIn().setHeader("providerName", PROVIDERS.get(index));
-				// exchange.getIn().setBody(PROVIDERS_BODY.get(index));
-				// // StringBuilder stringBuilder = new StringBuilder();
-				// // int size = random.nextInt(20) * (index + 1);
-				// // for (int i = 1; i <= size; i++) {
-				// // stringBuilder.append(size);
-				// // }
-				// // exchange.getIn().setBody(stringBuilder.toString());
-				// }
-				// };
+				final List<String> PROVIDERS = Arrays.asList("ADAC", "GARMIN", "NAVIGON");
+				final List<String> PROVIDERS_BODY = Arrays.asList("#", "##", "###");
+				Processor myProcessor = new Processor() {
+					@Override
+					public void process(final Exchange exchange) throws Exception {
+						int index = random.nextInt(PROVIDERS.size());
+						exchange.getIn().setHeader("providerName", PROVIDERS.get(index));
+						exchange.getIn().setBody(PROVIDERS_BODY.get(index));
+					}
+				};
 
 				// @formatter:off
 				from("timer://myTestTimer?period=100")
 
 					// simple example to console
-					//.to("metrics://yourFirstMetric?consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					.to("metrics://yourFirstMetric?infix=X&consoleReporter={periodDurationUnit=seconds,periodDuration=10}")
 
 					// simple timing example
-					.to("metrics://yourFirstMetric?timing=start&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
-					.delay(1000)
-					.to("metrics://yourFirstMetric?timing=stop&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					//.to("metrics://yourFirstMetric?timing=start&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+					//.delay(1000)
+					//.to("metrics://yourFirstMetric?timing=stop&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+
+					// infix example
+					//.process(myProcessor)
+					//.to("metrics://requests?infix=${header.providerName}&jmxReporters=[{runtimeFilter=rate,runtimeSimpleDomain='metrics.requests.${header.providerName}'}]")
 
 					// miscellaneous examples
 					//.to("metrics://myMetric01?timing=start&infix=${in.body}")
@@ -79,8 +82,6 @@ public class MetricsTest extends CamelTestSupport {
 					//.to("metrics://yourFirstMetric?jmxReporter={domain=metrics1}")
 					//.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
 					//.to("metrics://yourSecondMetric?jmxReporter={domain=metrics2}")
-					//.process(myProcessor)
-					//.to("metrics://requests?infix=${header.providerName}&jmxReporters=[{runtimeSimpleDomain='metrics.requests.${header.providerName}'}]")
 					//.to("metrics://myMetric01?enableInternalTimer=true")
 					//.delay(1000)
 					//.to("metrics://myMetric01?timing=stop&infix=${in.body}")
