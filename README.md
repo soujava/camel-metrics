@@ -44,77 +44,79 @@ Depending on your layout, your log have something like this added once per minut
 ```
 
 
-### Standard Metric Groups
-Typically each metric endpoint creates one group of metrics, this is the standard metric group.  It consists of 3 different categories of metrics, 9 metrics in total.
+### Base Metric Group
+Typically each metric endpoint creates one group of metrics, this is the base metric group.  It consists of 3 different categories of metrics, 9 metrics in total.  Additionally, you may also add your own custom metrics to the base metric group.
 
-1. Rate Metric - The rate metric is a [Meter](http://metrics.codahale.com/manual/core/#meters) metric. Meter.mark() is called once per exchange.  All Meters have 5 attributes: count, mean rate, 1-minute rate, 5-minute rate and 15-minute rate.  See [Meter](http://metrics.codahale.com/manual/core/#meters) for more details.  The default name of the Meter is:
+1. **Rate Metric** - The rate metric is a [Meter](http://metrics.codahale.com/manual/core/#meters) metric. Meter.mark() is called once per exchange.  All Meters have 5 attributes: count, mean rate, 1-minute rate, 5-minute rate and 15-minute rate.  See [Meter](http://metrics.codahale.com/manual/core/#meters) for more details.  The default name of the Meter is:
 	1. metricName.rate
-1. Since Metrics - The since metrics are [Gauges](http://metrics.codahale.com/manual/core/#gauges). By default the component creates four gauges, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These gauges show the delta between that timestamp.  All Gauges have 1 attribute: value.  The default names of the Gauges are:
+1. **Since Metrics** - The since metrics are [Gauges](http://metrics.codahale.com/manual/core/#gauges). By default the component creates four gauges, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These gauges show the delta between that timestamp.  All Gauges have 1 attribute: value.  The default names of the Gauges are:
 	1. metricName.sinceMilliseconds
 	1. metricName.sinceSeconds
 	1. metricName.sinceMinutes
 	1. metricName.sinceHours
-1. Interval Metrics - The since metrics are [Histograms](http://metrics.codahale.com/manual/core/#histograms). By default the component creates four histograms, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These histograms are updated with the delta between that timestamp. and the previous exchange's timestamp.  The histograms provide a distribution of the intervals between the exchanges.  Histograms have 11 attributes: count, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  See [Histograms](http://metrics.codahale.com/manual/core/#histograms) for more details.  The default names of the Histograms are:
+1. **Interval Metrics** - The since metrics are [Histograms](http://metrics.codahale.com/manual/core/#histograms). By default the component creates four histograms, one for each TimeUnit of milliseconds, seconds, minutes and hours.  When each exchange passes through the component the time stamp is recorded.  These histograms are updated with the delta between that timestamp. and the previous exchange's timestamp.  The histograms provide a distribution of the intervals between the exchanges.  Histograms have 11 attributes: count, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  See [Histograms](http://metrics.codahale.com/manual/core/#histograms) for more details.  The default names of the Histograms are:
 	1. metricName.intervalMilliseconds
 	1. metricName.intervalSeconds
 	1. metricName.intervalMinutes
 	1. metricName.intervalHours
-1. Timing Metric - The timing metric ia a  [Timer](http://metrics.codahale.com/manual/core/#timers). By default the component does not create a timing metric.  To enable it you must have two metric endpoints in your route.  The first one must have the option: timing=start, the second one must have the option: timing=stop.  The time elapsed between the two endpoints is recorded.  All Timers have 15 attributes: count, mean, 1-minute, 5-minute, 15-minute, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  The default name of the timer is:
+1. **Timing Metric** - The timing metric ia a  [Timer](http://metrics.codahale.com/manual/core/#timers). By default the component does not create a timing metric.  To enable it you must have two metric endpoints in your route.  The first one must have the option: timing=start, the second one must have the option: timing=stop.  The time elapsed between the two endpoints is recorded.  All Timers have 15 attributes: count, mean, 1-minute, 5-minute, 15-minute, min, max, mean, stddev, median, 75%, 95%, 98%, 99%, and 99.9%.  The default name of the timer is:
 	1. metricName.timing
-1. Custom Metrics - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
-	1. counters - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
-	1. histograms - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
-	1. gauges - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum.
-	1. cachedGauges - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam urna tortor, venenatis ut suscipit lacinia, auctor in metus. Etiam semper vehicula nisi, et feugiat quam scelerisque hendrerit. Sed ullamcorper nisi vitae lobortis interdum
+1. **Additional Custom Metrics** - There are five types of custom metrics, [Counters](http://metrics.codahale.com/manual/core/#counters), [Meters](http://metrics.codahale.com/manual/core/#meters), [Histograms](http://metrics.codahale.com/manual/core/#histograms), [Gauges](http://metrics.codahale.com/manual/core/#gauges) and [Cached Gauges](http://metrics.codahale.com/manual/core/#cached-gauges).
+	1. counters - Counters are defined by two parameters, the name and the value.  Name is optional, if omitted an incrementing name will be chosen.  Value is evaluated at runtime as a [Simple Expression](https://camel.apache.org/simple.html) and used to increment the counter.  The value should evaluate to a Long.  Some examples:
+```
+<to uri="metrics://yourFirstMetric?counter={value='${simpleExpression}'}"/>
+<to uri="metrics://yourFirstMetric?counters=[{name=counterName,value='${simpleExpression}'},{name=otherCounterName,value='${otherSimpleExpression}'}]"/>
+```
+	1. meters - Meters are defined by two parameters, the name and the value.  Name is optional, if omitted an incrementing name will be chosen.  Value is evaluated at runtime as a [Simple Expression](https://camel.apache.org/simple.html) and used to mark the meter.  The value should evaluate to a Long.  Some examples:
+```
+<to uri="metrics://yourFirstMetric?meter={value='${simpleExpression}'}"/>
+```
+```
+<to uri="metrics://yourFirstMetric?meters=[{name=meterName,value='${simpleExpression}'},{name=otherMeterName,value='${otherSimpleExpression}'}]"/>
+```
+	1. histograms - Histograms are defined by two parameters, the name and the value.  Name is optional, if omitted an incrementing name will be chosen.  Value is evaluated at runtime as a [Simple Expression](https://camel.apache.org/simple.html) and used to update the histogram.  The value should evaluate to a Long.
+	1. gauges - Gauges are defined by two parameters, the name and the value.  Name is optional, if omitted an incrementing name will be chosen.  Value is evaluated at runtime as a [Simple Expression](https://camel.apache.org/simple.html) and used as the value of the Gauge.  The value need not be a Long.
+	1. cachedGauges - Cached Gauges are defined by four parameters, the name, the value, and two parameters that define how frequently to load the value: duration and durationUnit. An example:
+	```
+	<to uri="metrics://yourFirstMetric?cachedGauge={value='${simpleExpression}',duration=1,durationUnit=minutes}"/>
+	```
+
+### Custom Metric Group
+If you supply the infix option, it will be evaluated at runtime and a new metric group will be created for each new value.  Note that this new metric group will be used in addition to the base metric group, not instead of.  For example the non-custom metrics from the base group would be named as folows:
+
+	1. metricName.INFIX_VALUE.rate
+	1. metricName.INFIX_VALUE.sinceMilliseconds
+	1. metricName.INFIX_VALUE.sinceSeconds
+	1. metricName.INFIX_VALUE.sinceMinutes
+	1. metricName.INFIX_VALUE.sinceHours
+	1. metricName.INFIX_VALUE.intervalMilliseconds
+	1. metricName.INFIX_VALUE.intervalSeconds
+	1. metricName.INFIX_VALUE.intervalMinutes
+	1. metricName.INFIX_VALUE.intervalHours
 
 
 ###Reporters
 ...
 
-###Default Metrics
-"rate" in camel-metrics is a Meter in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#meters for more details on Meters.  Every exchange will cause a call to Meter.mark().
-
-"sinceX" in camel-metrics are Gauges in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#gauges more details for on Gauges. They come in 7 different varieties corresponding to the 7 values of java's TimeUnit enumeration: ,sinceNanoseconds, sinceMicroseconds, sinceMilliseconds, sinceSeconds, sinceMinutes, sinceHours and sinceDays.  The value of the metrics corresponds to how long it's been since an exchange has been processed this endpoint.  In the case of sinceSeconds, it's the number of seconds since an exchange has been processed by this endpoint, in the case of sinceMinutes, it's the number of seconds since an exchange has been processed by this endpoint, and so on.
-
-"intervalX" in camel-metrics are Histograms in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#histograms for more details on Histograms. They also come in the 7 different TimeUnit varieties as the "sinceX" metrics.  The difference between "intervalX" and "sinceX" metrics is that "sinceX" metrics provide a real-time view of the time interval between exchanges, whereas "intervalX" metrics provide a view of the distribution of the time interval between exchanges.
-
-##Timing Metrics
-You can also create a timing metric.  This is a basic example:
-```
-<from uri="timer://namedTimer?period=100"/>
-<to uri="metrics://yourSecondMetric?context=com.your.company&timing=start"/>
-<!-- ... more work here that you want to time ... -->
-<to uri="metrics://yourFirstMetric?context=com.your.company&timing=stop"/>
-```
-Timing metrics in camel-metrics are Timers in Coda Hale Metrics, see http://metrics.codahale.com/getting-started/#timers for more details.  The first occurance of the named metrics endpoint will start the timer, the second one will stop it.
-
-##Additional Custom Metrics
-You can also enable some metrics based on [Apache Camel's Simple Expression Language](https://camel.apache.org/simple.html).  Here are some simple examples:
-###Counter
-```
-<from uri="timer://namedTimer?period=100"/>
-<to uri="metrics://myThirdMetric?context=com.your.company&counterDelta=3&counterName=MyName"/>
-```
-The value of `counterDelta` can be any Simple Expression.
-###Histogram
-```
-<from uri="timer://namedTimer?period=100"/>
-<to uri="metrics://myFourthMetric?histogramValue=3&histogramName=MyName"/>
-```
-The value of `histogramValue` can be any Simple Expression.
-###Gauge
-```
-<from uri="timer://namedTimer?period=100"/>
-<to uri="metrics://myFourthMetric?gaugeValue=3&gaugeName=MyName"/>
-```
-The value of `gaugeValue` can be any Simple Expression.  Note that since a custom Gauge metric could be time consuming, the Gauge that is created is a Cached Gauge, see http://metrics.codahale.com/manual/core/#cached-gauges for more details on Cached Gauges.
-
-###Internal Timer
-Every component added to a route adds latency, we are making every effort to minimize the latency added by camel-metrics.  The `enableInternalTimer` flag cane be enabled to expose how much latency each camel-metrics endpoint is adding.
 
 ###URI Option Reference
-| Option | Description | Default | Allowed Values |
+| Option | Description | Default | Example Uses |
 | --- | --- | --- | --- |
+| timing | used to start and stop timing metrics | no default | `metrics://metricName?timing=start` `metrics://metricName?timing=stop` |
+| infix | evaluated at runtime as a Simple Expression.  Resulting value is used to create additional metrics | no default |  |
+| intervalTimeUnits | Used in the creation of interval metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | `metrics://metricName?intervalTimingUnits=[MILLISECONDS,DAYS]` |
+| sinceTimeUnits | Used in the creation of since metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | `metrics://metricName?intervalTimingUnits=[MILLISECONDS,DAYS]` |
+| cachedGauges | desc | default | comments |
+| cachedGauge | desc | default | comments |
+| counters | desc | default | comments |
+| counter | desc | default | comments |
+| histograms | desc | default | comments |
+| histogram | desc | default | comments |
+| gauges | desc | default | comments |
+| gauge | desc | default | comments |
+| meters | desc | default | comments |
+| meter | desc | default | comments |
+| enableInternalTimer | desc | default | comments |
 | context | prefix to use before all the individual metrics | "io.initium.metrics" | any string |
 | timing | used in startting and stopping timers | no default | start, stop |
 | timingName |  name of the timer | "timing" | any string |
