@@ -102,44 +102,23 @@ If you supply the infix option, it will be evaluated at runtime and a new metric
 ###URI Option Reference
 | Option | Description | Default | Example Uses |
 | --- | --- | --- | --- |
-| timing | used to start and stop timing metrics | no default | `metrics://metricName?timing=start` `metrics://metricName?timing=stop` |
+| timing | used to start and stop timing metrics | no default | timing=start, timing=stop |
 | infix | evaluated at runtime as a Simple Expression.  Resulting value is used to create additional metrics | no default |  |
-| intervalTimeUnits | Used in the creation of interval metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | `metrics://metricName?intervalTimingUnits=[MILLISECONDS,DAYS]` |
-| sinceTimeUnits | Used in the creation of since metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | `metrics://metricName?intervalTimingUnits=[MILLISECONDS,DAYS]` |
-| cachedGauges | desc | default | comments |
-| cachedGauge | desc | default | comments |
+| intervalTimeUnits | Used in the creation of interval metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | intervalTimingUnits=[MILLISECONDS,DAYS] |
+| sinceTimeUnits | Used in the creation of since metrics. | MILLISECONDS, SECONDS, MINUTES, HOURS | sinceTimingUnits=[MILLISECONDS,DAYS] |
+| timing | used in startting and stopping timers | no default | start, stop |
+| timingName |  name of the timer metric | "timing" | any string |
+| rateName |  name of the rate metric | "rate" | any string |
+| sinceName |  base name of the since metrics | "since" | any string |
+| intervalName |  base name of the since metrics | "interval" | any string |
 | counters | desc | default | comments |
 | counter | desc | default | comments |
-| histograms | desc | default | comments |
-| histogram | desc | default | comments |
-| gauges | desc | default | comments |
-| gauge | desc | default | comments |
 | meters | desc | default | comments |
 | meter | desc | default | comments |
+| gauges | desc | default | comments |
+| gauge | desc | default | comments |
+| cachedGauges | desc | default | comments |
+| cachedGauge | desc | default | comments |
+| histograms | desc | default | comments |
+| histogram | desc | default | comments |
 | enableInternalTimer | desc | default | comments |
-| context | prefix to use before all the individual metrics | "io.initium.metrics" | any string |
-| timing | used in startting and stopping timers | no default | start, stop |
-| timingName |  name of the timer | "timing" | any string |
-| timingReservoir |  name of supplied reservoir to use for the timing  |  | |
-| counterDelta | how much to increment the counter by with each exchange | no default | Integer or Simple Expression |
-| counterName |  name of the counter | "count" | any string |
-| histogramValue |  the value to be used in the histogram | no default | Integer or Simple Expression |
-| histogramName |  name of the histogram | "histogram" | any string |
-| histogramReservoir |  name of supplied reservoir to use for the custom histogram  |  | |
-| gaugeValue |  value to be used in the gauge, note: it doesn't need to be a number.  It can be any object that is usable via JMX | no default | Simple Expression |
-| gaugeName |  name of the gauge | "gauge" | any string |
-| durationUnit |  time unit to use for all default "duration" metrics | milliseconds | name of any Java TimeUnit value |
-| rateUnit | time unit to use for all default "rate" metrics | seconds | name of any Java TimeUnit value |
-| gaugeCacheDuration |  duration to be used for the custom cached gauge | 10 | any Integer |
-| gaugeCacheDurationUnit |  duration unit to be used for the custom cached gauge | seconds | name of any Java TimeUnit value |
-| intervalReservoir |  name of supplied reservoir to use for the interval  |  | |
-| enableInternalTimer |  enables the internal latency timer | false | true, false |
-| enableJmxReporting |  enables the JMX Reporting | true | true, false |
-
-#What's Next
-1. more configurability for metrics already exposed
-2. support for more metrics objects from library
-3. more configurability of JMX reporting
-4. added support for Console reporting
-5. added support for Graphite reporting
-6. and of course bug fixing
