@@ -50,6 +50,18 @@ public class CamelMetricsJmxReporterTestSupport extends CamelTestSupport {
 		}
 	}
 
+	public boolean verifyAttributeValueString(final String objectNameName, final String attributeName, final String expected) {
+		try {
+			ObjectName objectName = new ObjectName(objectNameName);
+			Object value = this.mbeanServer.getAttribute(objectName, attributeName);
+			String stringValue = (String) value;
+			return stringValue.equals(expected);
+		} catch (Exception e) {
+			LOGGER.error("could not convert to String", e);
+			return false;
+		}
+	}
+
 	public boolean verifyObjectNameIsRegistered(final String objectNameName) {
 		try {
 			ObjectName objectName = new ObjectName(objectNameName);
