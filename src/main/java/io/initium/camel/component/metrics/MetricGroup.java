@@ -364,6 +364,8 @@ public class MetricGroup extends ServiceSupport {
 			return true;
 		} else if (this.histograms.values().contains(metric)) {
 			return true;
+		} else if (this.meters.values().contains(metric)) {
+			return true;
 		} else if (this.gauges.values().contains(metric)) {
 			return true;
 		} else if (this.cachedGauges.values().contains(metric)) {
