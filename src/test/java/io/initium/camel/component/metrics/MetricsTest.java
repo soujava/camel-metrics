@@ -65,7 +65,17 @@ public class MetricsTest extends CamelTestSupport {
 				from("timer://myTestTimer?period=100")
 
 					// simple example to console
-					.to("metrics://yourFirstMetric?infix=X&consoleReporter={periodDurationUnit=seconds,periodDuration=10}")
+					//.to("metrics://yourFirstMetric?consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
+
+					// custom meter example
+					//.to("metrics://test?jmxReporters=[{}]&meter={value=1,name=myMeter}")
+				
+					// custom gauge example
+					//.to("metrics://test?jmxReporters=[{}]&gauge={value=1,name=myGauge}")
+
+					// custom cached gauge example
+					.process(myProcessor)
+					.to("metrics://test?jmxReporters=[{}]&cachedGauge={value='${header.providerName}',name=mySimpleCachedGauge,duration=10,durationUnit=seconds}")
 
 					// simple timing example
 					//.to("metrics://yourFirstMetric?timing=start&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
