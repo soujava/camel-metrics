@@ -205,6 +205,7 @@ public class MetricGroup extends ServiceSupport {
 					}
 				}
 			};
+			this.metricRegistry.register(lclName, cachedGauge);
 			this.cachedGauges.put(cachedGaugeDefinition, cachedGauge);
 		}
 	}
@@ -268,6 +269,7 @@ public class MetricGroup extends ServiceSupport {
 					}
 				}
 			};
+			this.metricRegistry.register(lclName, gauge);
 			this.gauges.put(gaugeDefinition, gauge);
 		}
 	}

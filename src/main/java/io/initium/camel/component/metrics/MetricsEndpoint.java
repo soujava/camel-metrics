@@ -435,10 +435,10 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			cacheGaugeDefinitions = new ArrayList<CachedGaugeDefinition>();
 			cacheGaugeDefinitions.add(cachedGaugeDefinition);
 		}
+		this.cachedGaugeDefinitions = cacheGaugeDefinitions;
 		for (CachedGaugeDefinition cachedGaugeDefinition : cacheGaugeDefinitions) {
 			cachedGaugeDefinition.createExpression(getCamelContext());
 		}
-		this.cachedGaugeDefinitions = cacheGaugeDefinitions;
 	}
 
 	/**
@@ -547,10 +547,10 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			gaugeDefinitions = new ArrayList<GaugeDefinition>();
 			gaugeDefinitions.add(gaugeDefinition);
 		}
+		this.gaugeDefinitions = gaugeDefinitions;
 		for (GaugeDefinition gaugeDefinition : this.gaugeDefinitions) {
 			gaugeDefinition.createExpression(getCamelContext());
 		}
-		this.gaugeDefinitions = gaugeDefinitions;
 	}
 
 	/**
