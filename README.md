@@ -43,6 +43,7 @@ Depending on your layout, your log have something like this added once per minut
 2014-04-17 12:32 - metrics - type=METER, name=yourFirstMetric.rate, count=0, mean_rate=0.0, m1=0.0, m5=0.0, m15=0.0, rate_unit=events/second
 ```
 
+Note: this documentation is not yet complete.
 
 ### Base Metric Group
 Typically each metric endpoint creates one group of metrics, this is the base metric group.  It consists of 3 different categories of metrics, 9 metrics in total.  Additionally, you may also add your own custom metrics to the base metric group.
