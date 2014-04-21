@@ -195,12 +195,19 @@ public class MetricGroup extends ServiceSupport {
 			}
 			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
 			LOGGER.debug(MARKER, "enabling cached gauge metric: {} based on definition: {}", lclName, cachedGaugeDefinition);
-			CachedGauge<Object> cachedGauge = new CachedGauge<Object>(cachedGaugeDefinition.getDuration(), cachedGaugeDefinition.getDurationUnit()) {
+			CachedGauge<String> cachedGauge = new CachedGauge<String>(cachedGaugeDefinition.getDuration(), cachedGaugeDefinition.getDurationUnit()) {
 				@Override
-				protected Object loadValue() {
+				protected String loadValue() {
 					if (MetricGroup.this.lastExchange != null) {
-						return cachedGaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+						Object result = cachedGaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+						try {
+							return (String) result;
+						} catch (Exception e) {
+							LOGGER.warn("result did not evalaute to a String, result={}", result);
+							return null;
+						}
 					} else {
+						LOGGER.info("no exchange available for gauge calculation");
 						return null;
 					}
 				}
@@ -259,12 +266,19 @@ public class MetricGroup extends ServiceSupport {
 			}
 			String lclName = MetricUtils.calculateFullMetricName(this.fullName, subName);
 			LOGGER.debug(MARKER, "enabling gauge metric: {} based on definition: {}", lclName, gaugeDefinition);
-			Gauge<Object> gauge = new Gauge<Object>() {
+			Gauge<String> gauge = new Gauge<String>() {
 				@Override
-				public Object getValue() {
+				public String getValue() {
 					if (MetricGroup.this.lastExchange != null) {
-						return gaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+						Object result = gaugeDefinition.getExpression().evaluate(MetricGroup.this.lastExchange, Object.class);
+						try {
+							return (String) result;
+						} catch (Exception e) {
+							LOGGER.warn("result did not evalaute to a String, result={}", result);
+							return null;
+						}
 					} else {
+						LOGGER.info("no exchange available for gauge calculation");
 						return null;
 					}
 				}
