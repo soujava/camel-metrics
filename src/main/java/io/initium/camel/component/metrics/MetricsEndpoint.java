@@ -41,6 +41,7 @@ import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinitio
 import io.initium.camel.component.metrics.definition.metric.CounterDefinition;
 import io.initium.camel.component.metrics.definition.metric.GaugeDefinition;
 import io.initium.camel.component.metrics.definition.metric.HistogramDefinition;
+import io.initium.camel.component.metrics.definition.metric.MeterDefinition;
 import io.initium.camel.component.metrics.definition.metric.TimerDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ConsoleReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.CsvReporterDefinition;
@@ -68,6 +69,8 @@ import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITIONS_TYPE;
 import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.METER_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.METER_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.SLF4J_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.SLF4J_REPORTER_TYPE;
 import static io.initium.common.util.GsonHelper.TIME_UNITS_TYPE;
@@ -109,15 +112,21 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	private final Timer						internalTimerNoop		= null;
 	private final Timer						internalTimerStop		= null;
 
+	// base metric names
+	private String							rateName				= "rate";
+	private String							sinceName				= "since";
+	private String							intervalName			= "interval";
+	private String							timingName				= "timing";
+
 	// for timer metric
 	private final Timer						timer					= null;
-	private String							timingName				= "timing";
 	private String							timingActionName		= null;
 	private TimingAction					timingAction			= TimingAction.NOOP;
 
 	// for expression based metrics
 	private List<HistogramDefinition>		histogramDefinitions;
 	private List<CounterDefinition>			counterDefinitions;
+	private List<MeterDefinition>			meterDefinitions;
 	private List<GaugeDefinition>			gaugeDefinitions;
 	private List<CachedGaugeDefinition>		cachedGaugeDefinitions;
 
@@ -193,6 +202,13 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @return the intervalName
+	 */
+	public String getIntervalName() {
+		return this.intervalName;
+	}
+
+	/**
 	 * @return the intervalTimeUnits
 	 */
 	public List<TimeUnit> getIntervalTimeUnits() {
@@ -218,10 +234,24 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @return the rateName
+	 */
+	public String getRateName() {
+		return this.rateName;
+	}
+
+	/**
 	 * @return the reporterDefinitions
 	 */
 	public List<ReporterDefinition> getReporterDefinitions() {
 		return this.reporterDefinitions;
+	}
+
+	/**
+	 * @return the sinceName
+	 */
+	public String getSinceName() {
+		return this.sinceName;
 	}
 
 	/**
@@ -283,6 +313,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 
 		// expression based histograms
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addMeterDefinitions(this.meterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
 		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
@@ -316,6 +347,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 
 		// expression based histograms
 		metricGroup.addCounterDefinitions(this.counterDefinitions);
+		metricGroup.addMeterDefinitions(this.meterDefinitions);
 		metricGroup.addHistogramDefinitions(this.histogramDefinitions);
 		metricGroup.addGaugeDefinitions(this.gaugeDefinitions);
 		metricGroup.addCachedGaugeDefinitions(this.cachedGaugeDefinitions);
@@ -582,6 +614,14 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
+	 * @param intervalName
+	 *            the intervalName to set
+	 */
+	public void setIntervalName(final String intervalName) {
+		this.intervalName = intervalName;
+	}
+
+	/**
 	 * @param intervalTimeUnitString
 	 *            the intervalTimeUnitString to set
 	 */
@@ -629,6 +669,69 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		for (JmxReporterDefinition jmxReporterDefinition : jmxReporterDefinitions) {
 			this.reporterDefinitions.add(jmxReporterDefinition);
 		}
+	}
+
+	/**
+	 * @param meter
+	 *            the meter to set
+	 */
+	public void setMeter(final String meter) {
+		setMeters(meter);
+	}
+
+	/**
+	 * @param meters
+	 *            the meters to set
+	 */
+	public void setMeters(final String meters) {
+		List<MeterDefinition> meterDefinitions;
+		try {
+			meterDefinitions = GSON.fromJson(meters, METER_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			MeterDefinition meterDefinition = GSON.fromJson(meters, METER_DEFINITION_TYPE);
+			meterDefinitions = new ArrayList<MeterDefinition>();
+			meterDefinitions.add(meterDefinition);
+		}
+		for (MeterDefinition meterDefinition : meterDefinitions) {
+			meterDefinition.createExpression(getCamelContext());
+		}
+		this.meterDefinitions = meterDefinitions;
+	}
+
+	// /**
+	// * @param timingReservoirName
+	// * the timingReservoir to set
+	// */
+	// public void setTimingReservoir(final String timingReservoirName) {
+	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
+	// char firstChar = timingReservoirName.charAt(0);
+	// if (firstChar == '#') {
+	// String localName = timingReservoirName.substring(1);
+	// if (localName.length() > 0) {
+	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
+	// Reservoir.class);
+	// }
+	// }
+	// if (this.timingReservoir == null) {
+	// throw new NoSuchBeanException(this.name);
+	// }
+	// }
+	// }
+
+	/**
+	 * @param rateName
+	 *            the rateName to set
+	 */
+	public void setRateName(final String rateName) {
+		this.rateName = rateName;
+	}
+
+	/**
+	 * @param sinceName
+	 *            the sinceName to set
+	 */
+	public void setSinceName(final String sinceName) {
+		this.sinceName = sinceName;
 	}
 
 	/**
@@ -681,26 +784,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		}
 	}
 
-	// /**
-	// * @param timingReservoirName
-	// * the timingReservoir to set
-	// */
-	// public void setTimingReservoir(final String timingReservoirName) {
-	// if (timingReservoirName != null && timingReservoirName.length() > 0) {
-	// char firstChar = timingReservoirName.charAt(0);
-	// if (firstChar == '#') {
-	// String localName = timingReservoirName.substring(1);
-	// if (localName.length() > 0) {
-	// this.timingReservoir = CamelContextHelper.mandatoryLookup(getCamelContext(), timingReservoirName,
-	// Reservoir.class);
-	// }
-	// }
-	// if (this.timingReservoir == null) {
-	// throw new NoSuchBeanException(this.name);
-	// }
-	// }
-	// }
-
 	/**
 	 * @param timingActionName
 	 *            the timing to set
@@ -744,6 +827,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	 * @param parameters
 	 */
 	private void warnIfTimingStopIsUsedWithOtherParameters(final Map<String, Object> parameters) {
+		// TODO warning is not quite right anymore. timing=stop with infix is a valid combination
 		if (parameters.containsKey("timing")) {
 			Object value = parameters.get("timing");
 			if (value instanceof String) {

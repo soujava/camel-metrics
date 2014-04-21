@@ -31,15 +31,15 @@ public final class MetricUtils {
 	// private static final Logger LOGGER = LogManager.getLogger(SELF);
 
 	/**
-	 * @param baseName
-	 * @param infixName
+	 * @param firstName
+	 * @param secondName
 	 * @return
 	 */
-	public static String calculateFullMetricName(final String baseName, final String infixName) {
-		if (infixName == null) {
-			return baseName;
+	public static String calculateFullMetricName(final String firstName, final String secondName) {
+		if (secondName == null) {
+			return firstName;
 		}
-		return MetricRegistry.name(baseName, infixName);
+		return MetricRegistry.name(firstName, secondName);
 	}
 
 	/**
