@@ -28,7 +28,7 @@ public class CamelMetricsJmxReporterDefaultMetricsMetersTest extends CamelMetric
 	public void testMeterJmx() {
 		templateOne.sendBody("test");
 		assertThat(verifyObjectNameIsRegistered("metrics:name=test.myMeter"), equalTo(true));
-		assertThat(verifyAttributeValueLong("metrics:name=test.myCounter", "Count", 1L), equalTo(true));
+		assertThat(verifyAttributeValueLong("metrics:name=test.myMeter", "Count", 1L), equalTo(true));
 		resultEndpointOne.expectedMessageCount(1);
 	}
 	
