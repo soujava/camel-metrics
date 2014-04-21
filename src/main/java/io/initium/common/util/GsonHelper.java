@@ -48,7 +48,6 @@ public final class GsonHelper {
 	static {
 		GsonBuilder gsonBuilder = new GsonBuilder();
 		gsonBuilder.registerTypeAdapter(TimeUnit.class, new TimeUnitConverter());
-		// TODO register InstanceCreators for the expression based metrics endpoint options
 		GSON = gsonBuilder.create();
 	}
 

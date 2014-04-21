@@ -43,7 +43,6 @@ import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener
 public class MetricsComponent extends UriEndpointComponent {
 
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
-	// TODO support ReporterDefinitions that support setting Objects rather than names of objects
 
 	// logging
 	private static final String						SELF				= Thread.currentThread().getStackTrace()[1].getClassName();

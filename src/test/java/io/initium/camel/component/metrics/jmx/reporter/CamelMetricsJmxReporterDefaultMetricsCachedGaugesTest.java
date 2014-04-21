@@ -52,7 +52,7 @@ public class CamelMetricsJmxReporterDefaultMetricsCachedGaugesTest extends Camel
 	public void testSimpleCachedGaugeDefaultJmx() {
 		this.templateThree.sendBodyAndHeader("test", "size", 100);
 		assertThat(verifyObjectNameIsRegistered("metrics:name=test3.mySimpleCachedGauge"), equalTo(true));
-		// TODO not a valid test, the first cached value is set when the metric is created. the cache setting indicates
+		// not a valid test, the first cached value is set when the metric is created. the cache setting indicates
 		// it should only refresh once every minute
 		// assertThat(verifyAttributeValueLong("metrics:name=test3.mySimpleCachedGauge", "Count", 100L), equalTo(true));
 		this.resultEndpointOne.expectedMessageCount(1);
