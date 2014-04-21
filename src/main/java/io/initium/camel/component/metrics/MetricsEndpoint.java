@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
@@ -49,7 +50,6 @@ import io.initium.camel.component.metrics.definition.reporter.GraphiteReporterDe
 import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefinition;
-import io.initium.common.util.GsonHelper;
 import io.initium.common.util.MetricUtils;
 import io.initium.common.util.OptionHelper;
 
@@ -62,11 +62,15 @@ import static io.initium.common.util.GsonHelper.COUNTER_DEFINITIONS_TYPE;
 import static io.initium.common.util.GsonHelper.COUNTER_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.CSV_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.CSV_REPORTER_TYPE;
+import static io.initium.common.util.GsonHelper.GAUGE_DEFINITIONS_TYPE;
+import static io.initium.common.util.GsonHelper.GAUGE_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.GRAPHITE_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.GRAPHITE_REPORTER_TYPE;
 import static io.initium.common.util.GsonHelper.GSON;
 import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITIONS_TYPE;
 import static io.initium.common.util.GsonHelper.HISTOGRAM_DEFINITION_TYPE;
+import static io.initium.common.util.GsonHelper.INFIXES_TYPE;
+import static io.initium.common.util.GsonHelper.INFIX_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTERS_TYPE;
 import static io.initium.common.util.GsonHelper.JMX_REPORTER_TYPE;
 import static io.initium.common.util.GsonHelper.METER_DEFINITIONS_TYPE;
@@ -98,13 +102,29 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	// logging
-	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
+	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
+
+	/**
+	 * @param value
+	 * @param camelContext
+	 * @return
+	 */
+	public static Expression createExpression(final String value, final CamelContext camelContext) {
+		// TODO use this elsewhere
+		Language language;
+		if (value.contains("$")) {
+			language = camelContext.resolveLanguage("file");
+		} else {
+			language = camelContext.resolveLanguage("constant");
+		}
+		return language.createExpression(value);
+	}
 
 	// basic fields
 	private final String					name;
 	private final MetricsComponent			metricsComponent;
-	private Expression						infixExpression;
+	private List<Expression>				infixExpressions;
 
 	// for internal timer
 	private boolean							isInternalTimerEnabled	= false;
@@ -121,8 +141,8 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	// for timer metric
 	private final Timer						timer					= null;
 	private String							timingActionName		= null;
-	private TimingAction					timingAction			= TimingAction.NOOP;
 
+	private TimingAction					timingAction			= TimingAction.NOOP;
 	// for expression based metrics
 	private List<HistogramDefinition>		histogramDefinitions;
 	private List<CounterDefinition>			counterDefinitions;
@@ -173,10 +193,10 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
-	 * @return the infixExpression
+	 * @return the infixExpressions
 	 */
-	public Expression getInfixExpression() {
-		return this.infixExpression;
+	public List<Expression> getInfixExpressions() {
+		return this.infixExpressions;
 	}
 
 	/**
@@ -541,9 +561,9 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	public void setGauges(final String gauges) {
 		List<GaugeDefinition> gaugeDefinitions;
 		try {
-			gaugeDefinitions = GSON.fromJson(gauges, GsonHelper.GAUGE_DEFINITIONS_TYPE);
+			gaugeDefinitions = GSON.fromJson(gauges, GAUGE_DEFINITIONS_TYPE);
 		} catch (Exception e) {
-			GaugeDefinition gaugeDefinition = GSON.fromJson(gauges, GsonHelper.GAUGE_DEFINITION_TYPE);
+			GaugeDefinition gaugeDefinition = GSON.fromJson(gauges, GAUGE_DEFINITION_TYPE);
 			gaugeDefinitions = new ArrayList<GaugeDefinition>();
 			gaugeDefinitions.add(gaugeDefinition);
 		}
@@ -610,7 +630,27 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	 *            the infix to set
 	 */
 	public void setInfix(final String infix) {
-		this.infixExpression = createFileLanguageExpression(infix);
+		setInfixes(infix);
+	}
+
+	/**
+	 * @param infixesJson
+	 *            the gauges to set
+	 */
+	public void setInfixes(final String infixesJson) {
+		// this.infixExpression = createFileLanguageExpression(infix);
+		List<String> infixes;
+		try {
+			infixes = GSON.fromJson(infixesJson, INFIXES_TYPE);
+		} catch (Exception e) {
+			String infix = GSON.fromJson(infixesJson, INFIX_TYPE);
+			infixes = new ArrayList<String>();
+			infixes.add(infix);
+		}
+		this.infixExpressions = new ArrayList<Expression>();
+		for (String infix : infixes) {
+			this.infixExpressions.add(createExpression(infix, getCamelContext()));
+		}
 	}
 
 	/**
@@ -679,25 +719,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		setMeters(meter);
 	}
 
-	/**
-	 * @param meters
-	 *            the meters to set
-	 */
-	public void setMeters(final String meters) {
-		List<MeterDefinition> meterDefinitions;
-		try {
-			meterDefinitions = GSON.fromJson(meters, METER_DEFINITIONS_TYPE);
-		} catch (Exception e) {
-			MeterDefinition meterDefinition = GSON.fromJson(meters, METER_DEFINITION_TYPE);
-			meterDefinitions = new ArrayList<MeterDefinition>();
-			meterDefinitions.add(meterDefinition);
-		}
-		for (MeterDefinition meterDefinition : meterDefinitions) {
-			meterDefinition.createExpression(getCamelContext());
-		}
-		this.meterDefinitions = meterDefinitions;
-	}
-
 	// /**
 	// * @param timingReservoirName
 	// * the timingReservoir to set
@@ -717,6 +738,25 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	// }
 	// }
 	// }
+
+	/**
+	 * @param meters
+	 *            the meters to set
+	 */
+	public void setMeters(final String meters) {
+		List<MeterDefinition> meterDefinitions;
+		try {
+			meterDefinitions = GSON.fromJson(meters, METER_DEFINITIONS_TYPE);
+		} catch (Exception e) {
+			MeterDefinition meterDefinition = GSON.fromJson(meters, METER_DEFINITION_TYPE);
+			meterDefinitions = new ArrayList<MeterDefinition>();
+			meterDefinitions.add(meterDefinition);
+		}
+		for (MeterDefinition meterDefinition : meterDefinitions) {
+			meterDefinition.createExpression(getCamelContext());
+		}
+		this.meterDefinitions = meterDefinitions;
+	}
 
 	/**
 	 * @param rateName

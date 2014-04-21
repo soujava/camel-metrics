@@ -16,9 +16,11 @@
 package io.initium.camel.component.metrics;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.Expression;
 import org.apache.camel.impl.DefaultProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,26 +98,30 @@ public class MetricsProducer extends DefaultProducer {
 					stopTimer(exchange);
 					break;
 			}
-			// determine runtime MetricGroup
-			MetricGroup runtimeMetricGroup = null;
-			String infixValue = null;
-			if (this.endpoint.getInfixExpression() != null) {
-				infixValue = this.endpoint.getInfixExpression().evaluate(exchange, String.class);
-				String fullMetricGroupName = MetricRegistry.name(this.endpoint.getName(), infixValue);
-				if (!fullMetricGroupName.equalsIgnoreCase(MetricRegistry.name(this.endpoint.getName()))) {
-					runtimeMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName(), infixValue, exchange);
-				}
-			}
-			if (runtimeMetricGroup != null) {
-				switch (this.endpoint.getTimingAction()) {
-					case START:
-						startTimer(runtimeMetricGroup, infixValue, exchange);
-					case NOOP:
-						runtimeMetricGroup.mark(exchange);
-						break;
-					case STOP:
-						stopTimer(infixValue, exchange);
-						break;
+
+			// determine runtime MetricGroups
+			List<Expression> infixExpressions = this.endpoint.getInfixExpressions();
+			if (infixExpressions != null) {
+				for (Expression infixExpression : infixExpressions) {
+					MetricGroup runtimeMetricGroup = null;
+					String infixEvaluated = infixExpression.evaluate(exchange, String.class);
+					String fullMetricGroupName = MetricRegistry.name(this.endpoint.getName(), infixEvaluated);
+					// don't use it if it's equal to the base metric
+					if (!fullMetricGroupName.equalsIgnoreCase(MetricRegistry.name(this.endpoint.getName()))) {
+						runtimeMetricGroup = this.endpoint.lookupMetricGroup(this.endpoint.getName(), infixEvaluated, exchange);
+					}
+					if (runtimeMetricGroup != null) {
+						switch (this.endpoint.getTimingAction()) {
+							case START:
+								startTimer(runtimeMetricGroup, infixEvaluated, exchange);
+							case NOOP:
+								runtimeMetricGroup.mark(exchange);
+								break;
+							case STOP:
+								stopTimer(infixEvaluated, exchange);
+								break;
+						}
+					}
 				}
 			}
 		} finally {

@@ -85,6 +85,9 @@ public final class GsonHelper {
 	public static final Type	CACHED_GAUGE_DEFINITIONS_TYPE	= new TypeToken<Collection<CachedGaugeDefinition>>() {}.getType();
 	public static final Type	CACHED_GAUGE_DEFINITION_TYPE	= new TypeToken<CachedGaugeDefinition>() {}.getType();
 
+	public static final Type	INFIXES_TYPE					= new TypeToken<Collection<String>>() {}.getType();
+	public static final Type	INFIX_TYPE						= new TypeToken<String>() {}.getType();
+
 	/**
 	 * This class is not intended to ever be instantiated.
 	 */
