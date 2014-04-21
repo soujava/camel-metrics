@@ -74,7 +74,6 @@ public class OptionHelperTest {
 		{
 			String value = "[1,2,3,STEVE]";
 			List<Double> result = OptionHelper.parse(value, List.class);
-			System.err.println("x:" + result.get(3));
 			assertThat("type, value=" + value, result, isA(List.class));
 			// assertThat("size, value=" + value, result.size(), equalTo(3));
 			assertThat("get(0), value=" + value, result.get(0), equalTo(1D));
