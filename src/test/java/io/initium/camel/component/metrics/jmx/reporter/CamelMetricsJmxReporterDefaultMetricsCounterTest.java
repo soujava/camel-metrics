@@ -24,6 +24,12 @@ public class CamelMetricsJmxReporterDefaultMetricsCounterTest extends CamelMetri
 	@Produce(uri = "direct:startTwo")
 	protected ProducerTemplate templateTwo;
 	
+	@EndpointInject(uri = "mock:resultThree")
+	protected MockEndpoint resultEndpointThree;
+
+	@Produce(uri = "direct:startThree")
+	protected ProducerTemplate templateThree;
+	
 	@Test
 	public void testCounterJmx() {
 		templateOne.sendBody("test");
@@ -41,6 +47,14 @@ public class CamelMetricsJmxReporterDefaultMetricsCounterTest extends CamelMetri
 		assertThat(verifyAttributeValueLong("metrics:name=test2.myCounter3", "Count", 3L), equalTo(true));
 		resultEndpointTwo.expectedMessageCount(1);
 	}
+	
+	@Test
+	public void testSimpleCounterDefaultJmx() {
+		templateThree.sendBodyAndHeader("test", "size", 100);	
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test3.mySimpleCounter"), equalTo(true));
+		assertThat(verifyAttributeValueLong("metrics:name=test3.mySimpleCounter", "Count", 100L), equalTo(true));
+		resultEndpointOne.expectedMessageCount(1);
+	}
 		
 	@Override
 	protected RouteBuilder createRouteBuilder() {
@@ -49,6 +63,7 @@ public class CamelMetricsJmxReporterDefaultMetricsCounterTest extends CamelMetri
 			public void configure() {				
 				from("direct:startOne").to("metrics://test?jmxReporters=[{}]&counter={value=1,name=myCounter}").to("mock:resultOne");
 				from("direct:startTwo").to("metrics://test2?jmxReporters=[{}]&counters=[{value=2,name=myCounter2},{value=3,name=myCounter3}]").to("mock:resultTwo");
+				from("direct:startThree").to("metrics://test3?jmxReporters=[{}]&counter={value='${header.size}',name=mySimpleCounter}").to("mock:resultThree");
 			}
 		};
 	}

@@ -24,6 +24,12 @@ public class CamelMetricsJmxReporterDefaultMetricsHistogramsTest extends CamelMe
 	@Produce(uri = "direct:startTwo")
 	protected ProducerTemplate templateTwo;
 	
+	@EndpointInject(uri = "mock:resultThree")
+	protected MockEndpoint resultEndpointThree;
+
+	@Produce(uri = "direct:startThree")
+	protected ProducerTemplate templateThree;
+	
 	@Test
 	public void testHistogramDefaultJmx() {
 		templateOne.sendBody("test");
@@ -42,6 +48,15 @@ public class CamelMetricsJmxReporterDefaultMetricsHistogramsTest extends CamelMe
 		assertThat(verifyAttributeValueLong("metrics:name=test2.myHistogram3", "Max", 3L), equalTo(true));
 		resultEndpointTwo.expectedMessageCount(1);
 	}
+	
+	
+	@Test
+	public void testSimpleHistogramDefaultJmx() {
+		templateThree.sendBodyAndHeader("test", "size", 100);	
+		assertThat(verifyObjectNameIsRegistered("metrics:name=test3.mySimpleHistogram"), equalTo(true));
+		assertThat(verifyAttributeValueLong("metrics:name=test3.mySimpleHistogram", "Max", 100L), equalTo(true));
+		resultEndpointOne.expectedMessageCount(1);
+	}
 		
 	@Override
 	protected RouteBuilder createRouteBuilder() {
@@ -50,6 +65,7 @@ public class CamelMetricsJmxReporterDefaultMetricsHistogramsTest extends CamelMe
 			public void configure() {				
 				from("direct:startOne").to("metrics://test?jmxReporters=[{}]&histogram={value=1,name=myHistogram}").to("mock:resultOne");
 				from("direct:startTwo").to("metrics://test2?jmxReporters=[{}]&histograms=[{value=2,name=myHistogram2},{value=3,name=myHistogram3}]").to("mock:resultTwo");
+				from("direct:startThree").to("metrics://test3?jmxReporters=[{}]&histogram={value='${header.size}',name=mySimpleHistogram}").to("mock:resultThree");
 			}
 		};
 	}
