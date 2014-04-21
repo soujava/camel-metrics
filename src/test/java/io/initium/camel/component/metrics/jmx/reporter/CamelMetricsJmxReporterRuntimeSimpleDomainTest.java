@@ -12,7 +12,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.Test;
 
-public class CamelMetricsJmxReporterDynamicDomainTest extends CamelMetricsJmxReporterTestSupport {
+public class CamelMetricsJmxReporterRuntimeSimpleDomainTest extends CamelMetricsJmxReporterTestSupport {
 
 	@EndpointInject(uri = "mock:resultOne")
 	protected MockEndpoint resultEndpointOne;
