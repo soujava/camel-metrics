@@ -42,7 +42,6 @@ import io.initium.camel.component.metrics.listener.LoggingMetricRegistryListener
 @SuppressWarnings("rawtypes")
 public class MetricsComponent extends UriEndpointComponent {
 
-	// TODO error out on some required fields for reporters
 	// TODO remove suppress "rawtypes" warnings by refactoring ReporterDefinition
 	// TODO support ReporterDefinitions that support setting Objects rather than names of objects
 
