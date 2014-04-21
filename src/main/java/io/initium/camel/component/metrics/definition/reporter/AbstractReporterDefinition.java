@@ -16,8 +16,8 @@
 package io.initium.camel.component.metrics.definition.reporter;
 
 import org.apache.camel.Exchange;
-import org.apache.camel.Expression;
-import org.apache.camel.spi.Language;
+
+import io.initium.common.util.ExpressionUtils;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -34,26 +34,6 @@ public abstract class AbstractReporterDefinition<T extends ReporterDefinition<T>
 
 	/**
 	 * @param value
-	 * @param creatingExchange
-	 * @param type
-	 * @return
-	 */
-	public static <T> T evaluateExpression(final String value, final Exchange creatingExchange, final Class<T> type) {
-		if (value == null) {
-			return null;
-		}
-		Language language;
-		if (value.contains("$")) {
-			language = creatingExchange.getContext().resolveLanguage("file");
-		} else {
-			language = creatingExchange.getContext().resolveLanguage("constant");
-		}
-		Expression filterExpression = language.createExpression(value);
-		return filterExpression.evaluate(creatingExchange, type);
-	}
-
-	/**
-	 * @param value
 	 * @param runtimeValue
 	 * @param runtimeSimpleValue
 	 * @param creatingExchange
@@ -65,7 +45,7 @@ public abstract class AbstractReporterDefinition<T extends ReporterDefinition<T>
 			if (runtimeSimpleValue == null) {
 				evaluatedValue = runtimeValue;
 			} else {
-				evaluatedValue = evaluateExpression(runtimeSimpleValue, creatingExchange, String.class);
+				evaluatedValue = ExpressionUtils.evaluateAsExpression(runtimeSimpleValue, creatingExchange, String.class);
 			}
 			if (evaluatedValue != null) {
 				return evaluatedValue;

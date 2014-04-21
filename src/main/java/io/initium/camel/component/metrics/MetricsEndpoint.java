@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.camel.CamelContext;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
@@ -30,7 +29,6 @@ import org.apache.camel.Producer;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.api.management.ManagedResource;
 import org.apache.camel.impl.DefaultEndpoint;
-import org.apache.camel.spi.Language;
 import org.apache.camel.util.EndpointHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +48,12 @@ import io.initium.camel.component.metrics.definition.reporter.GraphiteReporterDe
 import io.initium.camel.component.metrics.definition.reporter.JmxReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.ReporterDefinition;
 import io.initium.camel.component.metrics.definition.reporter.Slf4jReporterDefinition;
+import io.initium.common.util.ExpressionUtils;
 import io.initium.common.util.MetricUtils;
 import io.initium.common.util.OptionHelper;
 
 import static io.initium.camel.component.metrics.MetricsComponent.MARKER;
+import static io.initium.common.util.ExpressionUtils.createExpression;
 import static io.initium.common.util.GsonHelper.CACHED_GAUGE_DEFINITIONS_TYPE;
 import static io.initium.common.util.GsonHelper.CACHED_GAUGE_DEFINITION_TYPE;
 import static io.initium.common.util.GsonHelper.CONSOLE_REPORTERS_TYPE;
@@ -102,24 +102,8 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	// logging
-	private static final String	SELF	= Thread.currentThread().getStackTrace()[1].getClassName();
-	private static final Logger	LOGGER	= LoggerFactory.getLogger(SELF);
-
-	/**
-	 * @param value
-	 * @param camelContext
-	 * @return
-	 */
-	public static Expression createExpression(final String value, final CamelContext camelContext) {
-		// TODO use this elsewhere
-		Language language;
-		if (value.contains("$")) {
-			language = camelContext.resolveLanguage("file");
-		} else {
-			language = camelContext.resolveLanguage("constant");
-		}
-		return language.createExpression(value);
-	}
+	private static final String				SELF					= Thread.currentThread().getStackTrace()[1].getClassName();
+	private static final Logger				LOGGER					= LoggerFactory.getLogger(SELF);
 
 	// basic fields
 	private final String					name;
@@ -457,7 +441,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		}
 		this.cachedGaugeDefinitions = cacheGaugeDefinitions;
 		for (CachedGaugeDefinition cachedGaugeDefinition : cacheGaugeDefinitions) {
-			cachedGaugeDefinition.createExpression(getCamelContext());
+			cachedGaugeDefinition.setExpression(ExpressionUtils.createExpression(cachedGaugeDefinition.getValue(), getCamelContext()));
 		}
 	}
 
@@ -508,7 +492,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			counterDefinitions.add(counterDefinition);
 		}
 		for (CounterDefinition counterDefinition : counterDefinitions) {
-			counterDefinition.createExpression(getCamelContext());
+			counterDefinition.setExpression(createExpression(counterDefinition.getValue(), getCamelContext()));
 		}
 		this.counterDefinitions = counterDefinitions;
 	}
@@ -569,7 +553,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 		}
 		this.gaugeDefinitions = gaugeDefinitions;
 		for (GaugeDefinition gaugeDefinition : this.gaugeDefinitions) {
-			gaugeDefinition.createExpression(getCamelContext());
+			gaugeDefinition.setExpression(createExpression(gaugeDefinition.getValue(), getCamelContext()));
 		}
 	}
 
@@ -620,7 +604,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			histogramDefinitions.add(histogramDefinition);
 		}
 		for (HistogramDefinition histogramDefinition : histogramDefinitions) {
-			histogramDefinition.createExpression(getCamelContext());
+			histogramDefinition.setExpression(createExpression(histogramDefinition.getValue(), getCamelContext()));
 		}
 		this.histogramDefinitions = histogramDefinitions;
 	}
@@ -753,7 +737,7 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 			meterDefinitions.add(meterDefinition);
 		}
 		for (MeterDefinition meterDefinition : meterDefinitions) {
-			meterDefinition.createExpression(getCamelContext());
+			meterDefinition.setExpression(createExpression(meterDefinition.getValue(), getCamelContext()));
 		}
 		this.meterDefinitions = meterDefinitions;
 	}
@@ -842,20 +826,6 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	}
 
 	/**
-	 * @param expression
-	 * @return
-	 */
-	private Expression createFileLanguageExpression(final String expression) {
-		Language language;
-		if (expression.contains("$")) {
-			language = getCamelContext().resolveLanguage("file");
-		} else {
-			language = getCamelContext().resolveLanguage("constant");
-		}
-		return language.createExpression(expression);
-	}
-
-	/**
 	 * @param baseName
 	 * @throws Exception
 	 */
@@ -867,13 +837,14 @@ public class MetricsEndpoint extends DefaultEndpoint implements MultipleConsumer
 	 * @param parameters
 	 */
 	private void warnIfTimingStopIsUsedWithOtherParameters(final Map<String, Object> parameters) {
-		// TODO warning is not quite right anymore. timing=stop with infix is a valid combination
 		if (parameters.containsKey("timing")) {
 			Object value = parameters.get("timing");
 			if (value instanceof String) {
 				String stringValue = (String) value;
 				if (TimingAction.STOP.name().equalsIgnoreCase(stringValue) && parameters.size() > 1) {
-					LOGGER.warn(MARKER, "found timing={}, additional parameters may be ignored: {}", stringValue, parameters);
+					if (!parameters.containsKey("infix") || parameters.size() > 2) {
+						LOGGER.warn(MARKER, "found timing={}, additional parameters may be ignored: {}", stringValue, parameters);
+					}
 				}
 			}
 		}

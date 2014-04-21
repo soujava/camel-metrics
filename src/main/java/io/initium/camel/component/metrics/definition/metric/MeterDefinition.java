@@ -15,8 +15,6 @@
 // @formatter:on
 package io.initium.camel.component.metrics.definition.metric;
 
-import org.apache.camel.CamelContext;
-import org.apache.camel.spi.Language;
 
 /**
  * @author Steve Fosdal, <steve@initium.io>
@@ -41,19 +39,6 @@ public class MeterDefinition extends ExpressionMetricDefinition {
 
 	// fields
 	private String	value	= DEFAULT_VALUE;
-
-	/**
-	 * @param camelContext
-	 */
-	public void createExpression(final CamelContext camelContext) {
-		Language language;
-		if (this.value.contains("$")) {
-			language = camelContext.resolveLanguage("file");
-		} else {
-			language = camelContext.resolveLanguage("constant");
-		}
-		setExpression(language.createExpression(this.value));
-	}
 
 	/**
 	 * @return the value
