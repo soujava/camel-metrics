@@ -60,17 +60,18 @@ public abstract class AbstractReporterDefinition<T extends ReporterDefinition<T>
 	 * @return
 	 */
 	public static String evaluateValue(final String value, final String runtimeValue, final String runtimeSimpleValue, final Exchange creatingExchange) {
-		final String evaluatedValue;
-		if (creatingExchange == null) {
-			evaluatedValue = value;
-		} else {
+		if (creatingExchange != null) {
+			final String evaluatedValue;
 			if (runtimeSimpleValue == null) {
 				evaluatedValue = runtimeValue;
 			} else {
 				evaluatedValue = evaluateExpression(runtimeSimpleValue, creatingExchange, String.class);
 			}
+			if (evaluatedValue != null) {
+				return evaluatedValue;
+			}
 		}
-		return evaluatedValue;
+		return value;
 	}
 
 	private String	filter;
