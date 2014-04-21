@@ -74,8 +74,8 @@ public class MetricsTest extends CamelTestSupport {
 					//.to("metrics://test?jmxReporters=[{}]&gauge={value=1,name=myGauge}")
 
 					// custom cached gauge example
-					.process(myProcessor)
-					.to("metrics://test?jmxReporters=[{}]&cachedGauge={value='${header.providerName}',name=mySimpleCachedGauge,duration=10,durationUnit=seconds}")
+					//.process(myProcessor)
+					//.to("metrics://test?jmxReporters=[{}]&cachedGauge={value='${header.providerName}',name=mySimpleCachedGauge,duration=10,durationUnit=seconds}")
 
 					// simple timing example
 					//.to("metrics://yourFirstMetric?timing=start&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
@@ -83,8 +83,8 @@ public class MetricsTest extends CamelTestSupport {
 					//.to("metrics://yourFirstMetric?timing=stop&consoleReporter={periodDurationUnit=seconds,periodDuration=1}")
 
 					// infix example
-					//.process(myProcessor)
-					//.to("metrics://requests?infix=${header.providerName}&jmxReporters=[{runtimeFilter=rate,runtimeSimpleDomain='metrics.requests.${header.providerName}'}]")
+					.process(myProcessor)
+					.to("metrics://requests?infix=['${header.providerName}','X${header.providerName}']&jmxReporters=[{}]")
 
 					// miscellaneous examples
 					//.to("metrics://myMetric01?timing=start&infix=${in.body}")

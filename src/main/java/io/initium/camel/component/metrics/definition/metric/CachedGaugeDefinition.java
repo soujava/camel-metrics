@@ -17,9 +17,6 @@ package io.initium.camel.component.metrics.definition.metric;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.camel.CamelContext;
-import org.apache.camel.spi.Language;
-
 /**
  * @author Steve Fosdal, <steve@initium.io>
  * @author Hector Veiga Ortiz, <hector@initium.io>
@@ -47,19 +44,6 @@ public class CachedGaugeDefinition extends ExpressionMetricDefinition {
 	private String		value			= DEFAULT_VALUE;
 	private long		duration		= DEFAULT_CACHE_DURATION;
 	private TimeUnit	durationUnit	= DEFAULT_CACHE_DURATION_UNIT;
-
-	/**
-	 * @param camelContext
-	 */
-	public void createExpression(final CamelContext camelContext) {
-		Language language;
-		if (this.value.contains("$")) {
-			language = camelContext.resolveLanguage("file");
-		} else {
-			language = camelContext.resolveLanguage("constant");
-		}
-		setExpression(language.createExpression(this.value));
-	}
 
 	/**
 	 * @return the duration
