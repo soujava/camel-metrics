@@ -15,6 +15,11 @@
 // @formatter:on
 package io.initium.camel.component.metrics.definition.reporter;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Reporter;
+import io.initium.camel.component.metrics.MetricGroup;
+import org.apache.camel.Exchange;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -67,5 +72,26 @@ public interface ReporterDefinition<T extends ReporterDefinition<T>> {
 	 *            the TimeUnit used for rate metrics with this reporter
 	 */
 	void setRateUnit(final TimeUnit unit);
+
+    /**
+     * Gets the period duration.
+     * @return the period duration.
+     */
+    Long getPeriodDuration();
+
+    /**
+     * Gers the period duration unit.
+     * @return the period duration unit.
+     */
+    TimeUnit getPeriodDurationUnit();
+
+    /**
+     * Builds a reporter with this definition
+     * @param metricRegistry the metrics registry
+     * @param creatingExchange the camel exchange
+     * @param metricGroup the metric group
+     * @return the scheduled reporter
+     */
+	Reporter buildReporter(final MetricRegistry metricRegistry, final Exchange creatingExchange, final MetricGroup metricGroup);
 
 }

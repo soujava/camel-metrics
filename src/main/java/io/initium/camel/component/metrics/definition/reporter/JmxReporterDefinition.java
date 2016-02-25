@@ -195,6 +195,16 @@ public class JmxReporterDefinition extends AbstractReporterDefinition<JmxReporte
 		this.rateUnit = rateUnit;
 	}
 
+	@Override
+	public Long getPeriodDuration() {
+		return null;
+	}
+
+	@Override
+	public TimeUnit getPeriodDurationUnit() {
+		return null;
+	}
+
 	/**
 	 * @param runtimeDomain
 	 *            the runtimeDomain to set
