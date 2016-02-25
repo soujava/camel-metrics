@@ -24,26 +24,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.*;
 import org.apache.camel.Exchange;
 import org.apache.camel.support.ServiceSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.CachedGauge;
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.ExponentiallyDecayingReservoir;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.JmxReporter;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Slf4jReporter;
-import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.GraphiteReporter;
 
 import io.initium.camel.component.metrics.definition.metric.CachedGaugeDefinition;
@@ -114,6 +103,7 @@ public class MetricGroup extends ServiceSupport {
 	private final List<GraphiteReporter>					graphiteReporters					= new ArrayList<GraphiteReporter>();
 	private final List<Slf4jReporter>						slf4jReporters						= new ArrayList<Slf4jReporter>();
 	private final List<CsvReporter>							csvReporters						= new ArrayList<CsvReporter>();
+    private final List<ScheduledReporter>                   scheduledReporters                  = new ArrayList<ScheduledReporter>();
 
 	/**
 	 * @param metricsEndpoint
@@ -575,7 +565,15 @@ public class MetricGroup extends ServiceSupport {
 			LOGGER.info(MARKER, "starting reporter: {}", csvReporter);
 			csvReporter.start(csvReporterDefinition.getPeriodDuration(), csvReporterDefinition.getPeriodDurationUnit());
 		} else {
-			LOGGER.warn(MARKER, "unsupported ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
+			LOGGER.warn(MARKER, "Custom ReporterDefinition: {}: {}", reporterDefinition.getClass(), reporterDefinition);
+            Reporter reporter = reporterDefinition.buildReporter(this.metricRegistry, this.creatingExchange, this);
+
+            if(reporter instanceof ScheduledReporter) {
+                ScheduledReporter scheduledReporter = (ScheduledReporter) reporter;
+                LOGGER.info(MARKER, "Trying to start reporter: {}", reporter);
+                this.scheduledReporters.add(scheduledReporter);
+                scheduledReporter.start(reporterDefinition.getPeriodDuration(), reporterDefinition.getPeriodDurationUnit());
+            }
 		}
 	}
 
@@ -637,6 +635,10 @@ public class MetricGroup extends ServiceSupport {
 			csvReporter.stop();
 		}
 		this.csvReporters.clear();
+        for (ScheduledReporter scheduledReporter : this.scheduledReporters) {
+            scheduledReporter.stop();
+        }
+        this.scheduledReporters.clear();
 	}
 
 	/**
